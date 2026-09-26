@@ -66,18 +66,49 @@ class SentinelConfig:
     auto_stop_on_critical: bool = False
     assume_power_w: Optional[float] = None
     wall_energy_path: Optional[str] = None
+    #: Unit of the wall-meter counter. Declared, never inferred from magnitude.
+    wall_energy_unit: str = "kwh"  # kwh | wh | j
 
 
 @dataclass
 class AccountingConfig:
-    """Local operational accounting configuration (estimates only)."""
+    """Local operational accounting configuration (estimates only).
+
+    ``emissions_factor_kgco2e_per_kwh`` is the ``I`` term of SCI. It is both
+    the offline default and the fallback every time-resolved provider degrades.
+    """
     currency: str = "USD"
     electricity_tariff_per_kwh: Optional[float] = None
     emissions_region: str = ""
     emissions_factor_kgco2e_per_kwh: Optional[float] = None
     emissions_factor_source: str = ""
     emissions_factor_version: str = ""
+    #: location | marginal. SCI declares which; carbon awareness needs marginal.
+    emissions_intensity_basis: str = "location"
     allow_assumed_power: bool = False
+    #: M term: share_of_operational | amortised | provider
+    embodied_method: str = "share_of_operational"
+    embodied_share_of_operational: float = 0.12
+    embodied_total_kgco2e: float = 0.0
+    embodied_lifetime_hours: float = 0.0
+
+
+@dataclass
+class CarbonConfig:
+    """Time-resolved grid carbon intensity providers (the ``I`` lookup).
+
+    Defaults to ``static``: sinter opens no socket unless this is changed.
+    """
+    provider: str = "static"
+    zone: str = ""
+    basis: str = "location"
+    file: str = ""
+    file_unit: str = "gco2e_per_kwh"  # gco2e_per_kwh | kgco2e_per_kwh
+    api_key_env: str = ""
+    api_key: str = ""  # resolved from api_key_env at load time; never logged
+    cache_ttl_s: float = 3600.0
+    timeout_s: float = 5.0
+    require_hourly: bool = False
 
 
 @dataclass
@@ -101,6 +132,7 @@ class CupolaConfig:
     cache_dir: Path = DEFAULT_CACHE_DIR
     sentinel: SentinelConfig = field(default_factory=SentinelConfig)
     accounting: AccountingConfig = field(default_factory=AccountingConfig)
+    carbon: CarbonConfig = field(default_factory=CarbonConfig)
     ramdisk: RamdiskConfig = field(default_factory=RamdiskConfig)
 
 
@@ -173,6 +205,9 @@ def load_config(config_path: Optional[Path] = None) -> CupolaConfig:
                 else None
             ),
             wall_energy_path=sentinel_raw.get("wall_energy_path"),
+            wall_energy_unit=str(
+                sentinel_raw.get("wall_energy_unit", s.wall_energy_unit)
+            ).lower(),
         )
 
     # Parse accounting configuration
@@ -200,6 +235,45 @@ def load_config(config_path: Optional[Path] = None) -> CupolaConfig:
             ),
             allow_assumed_power=bool(
                 accounting_raw.get("allow_assumed_power", a.allow_assumed_power)
+            ),
+            emissions_intensity_basis=accounting_raw.get(
+                "emissions_intensity_basis", a.emissions_intensity_basis
+            ),
+            embodied_method=accounting_raw.get(
+                "embodied_method", a.embodied_method
+            ),
+            embodied_share_of_operational=float(
+                accounting_raw.get(
+                    "embodied_share_of_operational", a.embodied_share_of_operational
+                )
+            ),
+            embodied_total_kgco2e=float(
+                accounting_raw.get("embodied_total_kgco2e", a.embodied_total_kgco2e)
+            ),
+            embodied_lifetime_hours=float(
+                accounting_raw.get(
+                    "embodied_lifetime_hours", a.embodied_lifetime_hours
+                )
+            ),
+        )
+
+    # Parse time-resolved carbon intensity configuration
+    carbon_raw = raw.get("carbon", {})
+    if carbon_raw:
+        c = config.carbon
+        api_key_env = carbon_raw.get("api_key_env", c.api_key_env)
+        config.carbon = CarbonConfig(
+            provider=str(carbon_raw.get("provider", c.provider)),
+            zone=str(carbon_raw.get("zone", c.zone)),
+            basis=str(carbon_raw.get("basis", c.basis)),
+            file=str(carbon_raw.get("file", c.file)),
+            file_unit=str(carbon_raw.get("file_unit", c.file_unit)),
+            api_key_env=str(api_key_env),
+            api_key=os.environ.get(str(api_key_env), "") if api_key_env else "",
+            cache_ttl_s=float(carbon_raw.get("cache_ttl_s", c.cache_ttl_s)),
+            timeout_s=float(carbon_raw.get("timeout_s", c.timeout_s)),
+            require_hourly=bool(
+                carbon_raw.get("require_hourly", c.require_hourly)
             ),
         )
 

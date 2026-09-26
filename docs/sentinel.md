@@ -8,6 +8,7 @@ Sentinel provides session-scoped, out-of-band telemetry for Cupola-managed `llam
 - **Session-scoped**: Samples only while a verified Cupola instance is running
 - **Measurement tiers**: Transparent quality indicators for energy measurements
 - **Thermal policy**: Advisory warnings with optional critical stop
+- **Software Carbon Intensity**: A per-session-hour SCI figure with its provenance
 - **Local estimates only**: Cost and CO₂e are operational estimates, not ESG accounting
 
 ## Measurement Tiers
@@ -33,6 +34,7 @@ critical_hold_s = 8
 auto_stop_on_critical = false
 # assume_power_w = 150.0  # Only if no power sensor
 # wall_energy_path = "/path/to/counter"
+wall_energy_unit = "kwh"  # kwh | wh | j — declared, never inferred
 
 [accounting]
 currency = "USD"
@@ -41,8 +43,15 @@ emissions_region = "US"
 emissions_factor_kgco2e_per_kwh = 0.40
 emissions_factor_source = "user-configured"
 emissions_factor_version = "2024-01"
+emissions_intensity_basis = "location"   # location | marginal
 allow_assumed_power = false
+embodied_method = "share_of_operational"
+embodied_share_of_operational = 0.12
 ```
+
+The session summary carries both numbers, and they are not the same thing:
+`co2e_kg` is the **operational** term only (`E x I`), while `sci` adds embodied
+emissions and divides by a functional unit. See [sci.md](sci.md).
 
 ## CLI Commands
 
@@ -56,6 +65,9 @@ cupola telemetry --json
 # Last session summary
 cupola telemetry --session
 
+# Software Carbon Intensity for the last session (per session hour)
+cupola sci
+
 # Garbage collect old telemetry (>14 days)
 cupola telemetry --gc
 
@@ -66,9 +78,11 @@ cupola status
 ## What Sentinel Is Not
 
 - **Not Scope 1/2/3 accounting**: No supplier emissions, no product LCA
-- **Not ESG disclosure**: No ESRS, ISSB, or offset features
+- **Not ESG disclosure**: No ESRS, ISSB or offset features
 - **Not automatic**: Default policy is advisory; auto-stop is opt-in
 - **Not a benchmark**: Compass handles benchmarking separately
+- **Not a per-request carbon meter**: power is sampled device-wide at ~1 Hz, so
+  a per-request figure would be below the sensor's resolution
 
 ## RAM Disk Management
 

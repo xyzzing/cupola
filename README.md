@@ -16,6 +16,7 @@ Cupola manages `llama-server` processes with deterministic lifecycle control, co
 - **Profile management**: TOML-based model profiles with validation
 - **Hardware probing**: Read-only capability detection (`cupola doctor`)
 - **Context benchmarking**: Find optimal context sizes (`cupola bench`)
+- **Carbon accounting**: Software Carbon Intensity (SCI) per verified task
 - **Backend updates**: Version management and feature detection (`cupola update`)
 - **RAM disk management**: Fast model loading via tmpfs (`cupola ramdisk`)
 - **Loopback isolation**: Backend binds to 127.0.0.1 by default
@@ -121,6 +122,8 @@ See [docs/configuration.md](docs/configuration.md) for complete configuration re
 | `cupola ramdisk up <profile>` | Copy model to RAM disk |
 | `cupola ramdisk down <profile>` | Remove model from RAM disk |
 | `cupola exec --sandbox <cmd>` | Run command in sandbox |
+| `cupola sci` | Software Carbon Intensity for the last session |
+| `cupola sci --report <path>` | Carbon block and green principles of a report |
 
 All commands support `--json` for structured output.
 
@@ -175,6 +178,9 @@ cupola telemetry
 # Session summary with energy/cost
 cupola telemetry --session
 
+# Software Carbon Intensity for the last session
+sinter sci
+
 # Status includes live telemetry
 cupola status
 ```
@@ -183,9 +189,29 @@ Sentinel provides:
 - Temperature monitoring (edge, hotspot, memory)
 - Power and energy measurement with quality tiers
 - Optional electricity cost and CO₂e estimates
+- Software Carbon Intensity (SCI) per session hour, with provenance
 - Thermal policy with advisory warnings
 
-See [docs/sentinel.md](docs/sentinel.md) for configuration and details.
+See [docs/sentinel.md](docs/sentinel.md) for configuration and
+[docs/sci.md](docs/sci.md) for SCI, the grid-intensity providers, and how to
+answer "does installing this plugin actually reduce carbon?".
+
+## Carbon accounting (SCI)
+
+Sinter reports `SCI = (E x I + M) / R` — energy (measured in tiers), grid carbon
+intensity (static, or hourly from a provider), embodied emissions, and a
+functional unit — with every number carrying its provenance, limitations, and
+green-software evidence.
+
+```bash
+sinter sci --report b.json
+sinter bench compare --baseline a.json --candidate b.json \
+    --attribute marginal --arm minder=b.json
+```
+
+No network is opened unless `[carbon] provider` is configured; the default is the
+offline annual factor in `[accounting]`. A missing measurement is reported as
+unavailable, never as zero. See [docs/sci.md](docs/sci.md).
 
 ## Architecture
 

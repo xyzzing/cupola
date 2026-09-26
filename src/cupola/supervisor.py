@@ -174,7 +174,10 @@ class Supervisor:
             auto_stop_on_critical=self.config.sentinel.auto_stop_on_critical,
             assume_power_w=self.config.sentinel.assume_power_w,
             wall_energy_path=self.config.sentinel.wall_energy_path,
+            wall_energy_unit=self.config.sentinel.wall_energy_unit,
             accounting=self.config.accounting.__dict__,
+            carbon=self.config.carbon.__dict__,
+            cache_dir=self.config.cache_dir,
             stop_callback=self._sentinel_stop_callback,
         )
         self._sampler.start()

@@ -62,6 +62,13 @@ class RunnerConfig:
     keep_workspace: bool = False
     token_poll_seconds: float = TOKEN_POLL_SECONDS
     extra_env: dict = field(default_factory=dict)
+    #: Hardware/accounting configuration for the carbon measurement. Left None
+    #: by callers that only care about task outcomes (most tests).
+    accounting: Optional[object] = None
+    carbon: Optional[object] = None
+    sentinel: Optional[object] = None
+    cache_dir: Optional[Path] = None
+    energy_sample_hz: float = 1.0
 
     def resolved_state_dir(self) -> Path:
         if self.state_dir is not None:
@@ -106,6 +113,10 @@ class TaskOutcome:
     grades: list[GradeResult] = field(default_factory=list)
     usage: dict = field(default_factory=dict)
     engine: dict = field(default_factory=dict)
+    #: EnergyResult dict for the run window (the ``E`` in SCI, tiered).
+    energy: dict = field(default_factory=dict)
+    #: Resolved intensity provenance for the run window (the ``I`` in SCI).
+    carbon: dict = field(default_factory=dict)
     workspace: Optional[str] = None
     log_path: Optional[str] = None
     problems: list[str] = field(default_factory=list)
@@ -125,6 +136,8 @@ class TaskOutcome:
             "wall_seconds": round(self.wall_seconds, 3),
             "usage": dict(self.usage),
             "engine": dict(self.engine),
+            "energy": dict(self.energy),
+            "carbon": dict(self.carbon),
             "workspace": self.workspace,
             "log_path": self.log_path,
             "problems": list(self.problems),
@@ -290,11 +303,13 @@ def run_task(task: Task, suite_root: Path, system: System,
     )
 
     started = time.monotonic()
+    meter = _open_energy_window(config, outcome)
     outcome.exit_code, breach = _spawn(argv, workspace, config, log_path,
                                        task.budgets.wall_seconds, watch)
     outcome.wall_seconds = time.monotonic() - started
     outcome.usage = watch.usage
     outcome.engine = watch.engine
+    _close_energy_window(outcome, meter, config)
 
     if breach == "timeout":
         outcome.status = STS_TIMEOUT
@@ -314,6 +329,52 @@ def run_task(task: Task, suite_root: Path, system: System,
         shutil.rmtree(workspace, ignore_errors=True)
         outcome.workspace = None
     return outcome
+
+
+def _open_energy_window(config: RunnerConfig,
+                        outcome: Optional[TaskOutcome] = None):
+    """Start sampling the hardware for the duration of the run.
+
+    Always on: with no sensors the window simply yields tier 0, which is the
+    honest answer and keeps the code path identical on every machine.
+    """
+    from cupola.telemetry import EnergyMeter
+
+    sentinel = config.sentinel
+    meter = EnergyMeter(
+        sample_hz=config.energy_sample_hz,
+        assume_power_w=getattr(sentinel, "assume_power_w", None),
+        wall_energy_path=getattr(sentinel, "wall_energy_path", None),
+        wall_energy_unit=getattr(sentinel, "wall_energy_unit", "kwh"),
+    )
+    meter.start(thread_name=f"cupola-run-{outcome.run_id or 'task'}")
+    return meter
+
+
+def _close_energy_window(outcome: TaskOutcome, meter,
+                         config: RunnerConfig) -> None:
+    """Record the run's energy, and resolve the intensity that went with it."""
+    from types import SimpleNamespace
+
+    from cupola.telemetry import build_intensity
+
+    meter.halt()
+    outcome.energy = meter.energy().to_dict()
+    if config.accounting is None:
+        return
+    carbon = config.carbon if config.carbon is not None else SimpleNamespace()
+    intensity, detail = build_intensity(
+        carbon=carbon,
+        accounting=config.accounting,
+        start=meter.started_at,
+        end=time.time(),
+        samples=meter.samples,
+        cache_dir=config.cache_dir,
+    )
+    outcome.carbon = {
+        "intensity": intensity.to_dict() if intensity is not None else None,
+        "detail": detail,
+    }
 
 
 def _unresolvable_command(system: System, workspace: Path) -> Optional[str]:

@@ -133,3 +133,53 @@ def test_malformed_toml_config():
             load_config(config_path)
     finally:
         config_path.unlink()
+
+
+def test_load_carbon_and_sci_config():
+    """The [carbon] and SCI accounting keys parse, with sane defaults."""
+    toml_content = """
+[accounting]
+emissions_factor_kgco2e_per_kwh = 0.4
+emissions_factor_source = "user-configured"
+emissions_factor_version = "2024-01"
+emissions_intensity_basis = "marginal"
+embodied_method = "amortised"
+embodied_total_kgco2e = 1200.0
+embodied_lifetime_hours = 20000.0
+
+[carbon]
+provider = "neso-gb"
+zone = "GB"
+basis = "location"
+cache_ttl_s = 900
+require_hourly = true
+
+[sentinel]
+wall_energy_path = "/tmp/meter"
+wall_energy_unit = "wh"
+"""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml",
+                                     delete=False) as f:
+        f.write(toml_content)
+        config_path = Path(f.name)
+    try:
+        config = load_config(config_path)
+        assert config.accounting.emissions_intensity_basis == "marginal"
+        assert config.accounting.embodied_method == "amortised"
+        assert config.accounting.embodied_total_kgco2e == 1200.0
+        assert config.carbon.provider == "neso-gb"
+        assert config.carbon.zone == "GB"
+        assert config.carbon.cache_ttl_s == 900.0
+        assert config.carbon.require_hourly is True
+        assert config.sentinel.wall_energy_unit == "wh"
+    finally:
+        config_path.unlink()
+
+
+def test_carbon_defaults_to_static_and_offline():
+    """No [carbon] section means no provider and no network."""
+    config = load_config(Path("/nonexistent/config.toml"))
+    assert config.carbon.provider == "static"
+    assert config.carbon.require_hourly is False
+    assert config.sentinel.wall_energy_unit == "kwh"
+    assert config.accounting.embodied_method == "share_of_operational"

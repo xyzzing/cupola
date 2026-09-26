@@ -28,6 +28,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, Optional
 
+from sinter.sci import carbon_principles
+
 VERDICT_PASS = "PASS"
 VERDICT_FAIL = "FAIL"
 VERDICT_INSUFFICIENT = "INSUFFICIENT_SAMPLE"
@@ -49,7 +51,22 @@ LOWER_IS_BETTER = ("wall_seconds_p50", "tokens_p50", "tokens_total",
                    "tokens_per_success", "tokens_per_verified_task",
                    "wall_seconds_per_success", "wall_seconds_total",
                    "output_tokens_total", "model_calls_total",
-                   "timed_out", "breached", "errored", "failed")
+                   "timed_out", "breached", "errored", "failed",
+                   "energy_kwh_total", "operational_gco2e_total",
+                   "embodied_gco2e_total", "sci_gco2e_per_verified_task",
+                   "sci_gco2e_per_success", "sci_gco2e_per_1k_tokens")
+
+#: Carbon metrics whose delta is only meaningful when both arms used the same
+#: methodology. Carbon is reported, never a gate: these deltas are annotated
+#: rather than allowed to flip a verdict.
+CARBON_DELTA_KEYS = (
+    "energy_kwh_total",
+    "operational_gco2e_total",
+    "embodied_gco2e_total",
+    "sci_gco2e_per_verified_task",
+    "sci_gco2e_per_success",
+    "sci_gco2e_per_1k_tokens",
+)
 
 
 class CompareError(Exception):
@@ -67,6 +84,12 @@ class Comparison:
     candidate: Optional[str] = None
     deltas: dict = field(default_factory=dict)
     paired: dict = field(default_factory=dict)
+    #: The carbon answer for this pair: the SCI delta, whether the two arms
+    #: measured carbon the same way, and whether the candidate helped.
+    carbon: dict = field(default_factory=dict)
+    #: The candidate's green-software evidence, with this comparison filled in,
+    #: so ``carbon_efficiency_proven`` can actually be earned.
+    principles: list[dict] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -77,6 +100,8 @@ class Comparison:
             "candidate": self.candidate,
             "deltas": self.deltas,
             "paired": self.paired,
+            "carbon": dict(self.carbon),
+            "principles": list(self.principles),
         }
 
 
@@ -101,6 +126,9 @@ def compare_pair(baseline: dict, candidate: dict,
                  label: str = "comparison") -> Comparison:
     """Compare two reports, applying verdict precedence."""
     if baseline.get("suite_fingerprint") != candidate.get("suite_fingerprint"):
+        # Deliberately no deltas: presenting a difference between two
+        # non-comparable reports invites exactly the misuse the verdict warns
+        # about.
         return Comparison(
             label=label, verdict=VERDICT_NON_COMPARABLE,
             reasons=[
@@ -122,19 +150,18 @@ def compare_pair(baseline: dict, candidate: dict,
                 f"{key}: candidate {cand.get(key)} > 0 "
                 "(absolute regression, any sample size)")
     if reasons:
-        return Comparison(label=label, verdict=VERDICT_FAIL, reasons=reasons,
-                          deltas=_deltas(base, cand),
-                          paired=_paired(baseline, candidate))
+        return _with_carbon_note(Comparison(
+            label=label, verdict=VERDICT_FAIL, reasons=reasons),
+            baseline, candidate)
 
     # 2. Sample size.
     runs = min(base.get("comparable_runs", 0), cand.get("comparable_runs", 0))
     if runs < MIN_COMPARABLE_RUNS:
-        return Comparison(
+        return _with_carbon_note(Comparison(
             label=label, verdict=VERDICT_INSUFFICIENT,
             reasons=[f"only {runs} comparable runs "
                      f"(need >= {MIN_COMPARABLE_RUNS}); a single run is not "
-                     "a result"],
-            deltas=_deltas(base, cand), paired=_paired(baseline, candidate))
+                     "a result"]), baseline, candidate)
 
     # 3. Completion drop.
     drop = base.get("verified_completion_rate", 0.0) - \
@@ -145,14 +172,122 @@ def compare_pair(baseline: dict, candidate: dict,
             f"({base.get('verified_completion_rate', 0):.1%} -> "
             f"{cand.get('verified_completion_rate', 0):.1%}, "
             f"limit {MAX_COMPLETION_DROP * 100:.0f}pp)")
-        return Comparison(label=label, verdict=VERDICT_FAIL, reasons=reasons,
-                          deltas=_deltas(base, cand),
-                          paired=_paired(baseline, candidate))
+        return _with_carbon_note(Comparison(
+            label=label, verdict=VERDICT_FAIL, reasons=reasons),
+            baseline, candidate)
 
-    return Comparison(label=label, verdict=VERDICT_PASS,
-                      reasons=["no protected metric regressed"],
-                      deltas=_deltas(base, cand),
-                      paired=_paired(baseline, candidate))
+    return _with_carbon_note(Comparison(
+        label=label, verdict=VERDICT_PASS,
+        reasons=["no protected metric regressed"]), baseline, candidate)
+
+
+def _with_carbon_note(comparison: Comparison, baseline: dict,
+                      candidate: dict) -> Comparison:
+    """Attach deltas, then qualify the carbon ones if methodology differs.
+
+    Carbon never changes the verdict: an estimate must not decide a pass or
+    fail. But a delta computed across two different intensity methodologies is
+    not a delta, so it is marked as such instead of being presented silently.
+    """
+    base = baseline.get("metrics") if isinstance(baseline.get("metrics"), dict) \
+        else None
+    cand = candidate.get("metrics") if isinstance(candidate.get("metrics"), dict) \
+        else None
+    if base is None or cand is None:
+        # A report without metrics cannot be diffed; the existing verdict and
+        # reasons stand (this is the fingerprint-mismatch path).
+        return comparison
+    comparison.deltas = _deltas(base, cand)
+    comparison.paired = _paired(baseline, candidate)
+
+    comparable, reason = _carbon_methodology(base, cand)
+    if not comparable:
+        for key in CARBON_DELTA_KEYS:
+            if key in comparison.deltas:
+                comparison.deltas[key]["comparable"] = False
+        comparison.reasons.append(reason)
+    comparison.carbon = _carbon_delta(base, cand, comparison.label, comparable,
+                                      reason)
+    comparison.principles = _principles_for(candidate, comparison.carbon)
+    return comparison
+
+
+def _principles_for(candidate: dict, carbon: dict) -> list[dict]:
+    """The candidate's green-software evidence, with this A/B filled in.
+
+    ``carbon_principles`` evaluates ``carbon.comparison`` for
+    ``carbon_efficiency_proven``; a standalone report cannot know its own
+    baseline, so the wiring happens here, where both arms exist.
+    """
+    metrics = candidate.get("metrics")
+    if not isinstance(metrics, dict) or not isinstance(metrics.get("carbon"), dict):
+        return []
+    enriched = dict(metrics)
+    enriched["carbon"] = {**metrics["carbon"], "comparison": dict(carbon)}
+    return carbon_principles({"metrics": enriched})
+
+
+def _carbon_delta(base: dict, cand: dict, label: str, methodology_ok: bool,
+                  reason: str) -> dict:
+    """The A/B carbon answer: did installing this actually help?
+
+    ``helped`` is ``"unknown"`` when the comparison cannot support an answer —
+    too few runs, no SCI on either side, or two different methodologies. A
+    ``False`` is a real, publishable negative result, not an error.
+    """
+    left = base.get("sci_gco2e_per_verified_task")
+    right = cand.get("sci_gco2e_per_verified_task")
+    numeric = (isinstance(left, (int, float)) and isinstance(right, (int, float))
+               and not isinstance(left, bool) and not isinstance(right, bool))
+    delta = round(right - left, 4) if numeric else None
+    completion_drop = (base.get("verified_completion_rate", 0.0) -
+                       cand.get("verified_completion_rate", 0.0))
+    completion_dropped = completion_drop > MAX_COMPLETION_DROP + _EPS
+    enough = min(base.get("comparable_runs", 0),
+                 cand.get("comparable_runs", 0)) >= MIN_COMPARABLE_RUNS
+    if delta is None or not methodology_ok or not enough:
+        helped = "unknown"
+    else:
+        helped = bool(delta <= 0 and not completion_dropped)
+    return {
+        "label": label,
+        "comparable": bool(methodology_ok and enough and delta is not None),
+        "methodology": "same" if methodology_ok else "differs",
+        "sci_delta_gco2e_per_verified_task": delta,
+        "completion_dropped": completion_dropped,
+        "helped": helped,
+        "reason": reason,
+    }
+
+
+def _carbon_methodology(base: dict, cand: dict) -> tuple[bool, str]:
+    """Do both reports measure carbon the same way?
+
+    Compares method, not data: two arms legitimately fetch different intervals,
+    so the series hash is evidence for a reader, not a comparability gate.
+    """
+    left = base.get("carbon") or {}
+    right = cand.get("carbon") or {}
+    left_i = left.get("intensity") or {}
+    right_i = right.get("intensity") or {}
+    mismatches = []
+    for name in ("source", "basis"):
+        if left_i.get(name) != right_i.get(name):
+            mismatches.append(
+                f"{name} {left_i.get(name)!r} vs {right_i.get(name)!r}")
+    if sorted(left_i.get("resolutions") or []) != \
+            sorted(right_i.get("resolutions") or []):
+        mismatches.append(
+            f"resolution {left_i.get('resolutions')} vs "
+            f"{right_i.get('resolutions')}")
+    left_m = (left.get("embodied") or {}).get("method")
+    right_m = (right.get("embodied") or {}).get("method")
+    if left_m != right_m:
+        mismatches.append(f"embodied method {left_m!r} vs {right_m!r}")
+    if mismatches:
+        return False, ("carbon methodology differs, so the carbon deltas are "
+                       "marked not comparable: " + "; ".join(mismatches))
+    return True, ""
 
 
 def _deltas(base: dict, cand: dict) -> dict:
@@ -295,12 +430,56 @@ def format_attribution(attribution: dict) -> str:
                 f"{paired.get('unchanged', 0)} unchanged")
         deltas = comparison.get("deltas") or {}
         for key in ("verified_completion_rate", "tokens_per_success",
-                    "tokens_per_verified_task", "wall_seconds_p50"):
+                    "tokens_per_verified_task", "wall_seconds_p50",
+                    "sci_gco2e_per_verified_task", "sci_gco2e_per_1k_tokens",
+                    "energy_kwh_total"):
             entry = deltas.get(key)
             if entry:
                 direction = "better" if entry["better"] else "worse"
+                suffix = "" if entry.get("comparable", True) \
+                    else " (not comparable: methodology differs)"
                 lines.append(f"    {key}: {entry['baseline']} -> "
-                             f"{entry['candidate']} ({direction})")
+                             f"{entry['candidate']} ({direction}){suffix}")
     for note in attribution.get("notes") or []:
         lines.append(f"note: {note}")
+    carbon_lines = [
+        _format_comparison_carbon(c.get("carbon") or {})
+        for c in attribution.get("comparisons") or []
+    ]
+    lines.extend(line for line in carbon_lines if line)
+    principle_lines = [
+        _format_comparison_principles(c.get("principles") or [])
+        for c in attribution.get("comparisons") or []
+    ]
+    lines.extend(line for line in principle_lines if line)
     return "\n".join(lines)
+
+
+def _format_comparison_principles(principles: list) -> str:
+    """One compact line: what was earned, and what is still unproven."""
+    passing = [p.get("id") for p in principles if p.get("status") == "pass"]
+    unproven = [p.get("id") for p in principles if p.get("status") != "pass"]
+    if not passing and not unproven:
+        return ""
+    text = f"green evidence: {len(passing)}/{len(principles)} principles proven"
+    if passing:
+        text += f" [{', '.join(passing)}]"
+    if unproven:
+        text += f"; unproven: {', '.join(unproven)}"
+    return text
+
+
+def _format_comparison_carbon(carbon: dict) -> str:
+    if not carbon:
+        return ""
+    helped = carbon.get("helped")
+    delta = carbon.get("sci_delta_gco2e_per_verified_task")
+    if helped == "unknown":
+        return ("carbon: unknown - " +
+                (carbon.get("reason") or "the comparison cannot support an "
+                 "answer"))
+    verdict = "helping" if helped else "not helping"
+    text = (f"carbon: {verdict} - SCI delta {delta} gCO2e per verified task")
+    if carbon.get("completion_dropped"):
+        text += " (completion rate dropped: the win is not a real one)"
+    return text

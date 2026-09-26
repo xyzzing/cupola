@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Optional
 
 from cupola import __version__
 from cupola.backend import detect_features, format_backend_info
@@ -932,8 +933,14 @@ def _execute_suite(args: argparse.Namespace, suite) -> int:
             print(f"Error: {problem}", file=sys.stderr)
         return 1
 
+    sinter_config = load_config()
     runner_config = RunnerConfig(
-        keep_workspace=getattr(args, "keep_workspace", False))
+        keep_workspace=getattr(args, "keep_workspace", False),
+        accounting=sinter_config.accounting,
+        carbon=sinter_config.carbon,
+        sentinel=sinter_config.sentinel,
+        cache_dir=sinter_config.cache_dir,
+    )
     try:
         outcomes = run_suite(suite.suite_id, system, root,
                              task_id=getattr(args, "task", None),
@@ -956,7 +963,8 @@ def _execute_suite(args: argparse.Namespace, suite) -> int:
         lane_warning = str(exc)
 
     report = build_report(suite, outcomes, lane_set, systems=[system],
-                          lane_snapshot=lane_snapshot)
+                          lane_snapshot=lane_snapshot,
+                          accounting=sinter_config.accounting)
     if lane_warning:
         report.environment["lanes_unavailable"] = lane_warning
 
@@ -1006,6 +1014,97 @@ def cmd_update(args: argparse.Namespace) -> int:
     return 0 if result.success else 1
 
 
+def _sci_lines(payload: dict) -> list[str]:
+    """Indirection so only the command that needs it imports the renderer."""
+    from sinter.sci import format_sci_lines
+
+    try:
+        return format_sci_lines(payload)
+    except Exception:  # a corrupt summary must not break `telemetry --session`
+        return ["SCI: unavailable"]
+
+
+def latest_telemetry_summary(config) -> Optional[dict]:
+    """The most recent Sentinel session summary, or ``None``."""
+    sessions_dir = config.state_dir / "telemetry" / "sessions"
+    if not sessions_dir.exists():
+        return None
+    summaries = sorted(sessions_dir.glob("*.json"),
+                       key=lambda p: p.stat().st_mtime, reverse=True)
+    if not summaries:
+        return None
+    try:
+        with open(summaries[0], "r") as handle:
+            return json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def cmd_sci(args: argparse.Namespace) -> int:
+    """Software Carbon Intensity for a session or a benchmark report."""
+    from sinter.report import read_report, validate_report
+    from sinter.sci import format_sci_lines
+
+    config = load_config()
+
+    if getattr(args, "report", None):
+        try:
+            report = read_report(Path(args.report))
+        except ValueError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+        errors = validate_report(report)
+        if errors:
+            for error in errors:
+                print(f"Error: {error}", file=sys.stderr)
+            return 1
+        metrics = report.get("metrics") or {}
+        if args.json:
+            print(json.dumps({"carbon": metrics.get("carbon"),
+                              "metrics": {k: metrics.get(k)
+                                          for k in (
+                                              "sci_gco2e_per_verified_task",
+                                              "sci_gco2e_per_success",
+                                              "sci_gco2e_per_1k_tokens",
+                                              "energy_kwh_total",
+                                              "operational_gco2e_total",
+                                              "embodied_gco2e_total",
+                                              "energy_runs")}},
+                             indent=2))
+            return 0
+        print(f"Report: {report.get('suite_id')} "
+              f"({str(report.get('suite_fingerprint'))[:12]})")
+        for line in format_sci_lines(metrics):
+            print(f"  {line}")
+        for principle in (metrics.get("carbon") or {}).get("principles") or []:
+            print(f"  {principle.get('status'):8s} {principle.get('id')}: "
+                  f"{principle.get('evidence')}")
+            if principle.get("limitation"):
+                print(f"           why: {principle['limitation']}")
+        return 0
+
+    summary = latest_telemetry_summary(config)
+    if summary is None:
+        print("No session summary found. Start an instance with "
+              "'sinter up <profile>', or pass --report PATH.", file=sys.stderr)
+        return 1
+
+    if args.json:
+        print(json.dumps({"sci": summary.get("sci"),
+                          "sci_reason": summary.get("sci_reason"),
+                          "energy": summary.get("energy"),
+                          "instance_uuid": summary.get("instance_uuid")},
+                         indent=2))
+        return 0
+
+    print(f"Session {str(summary.get('instance_uuid', 'unknown'))[:8]} "
+          f"({summary.get('profile', 'unknown')}, "
+          f"{summary.get('duration_s', 0):.1f}s)")
+    for line in format_sci_lines(summary):
+        print(f"  {line}")
+    return 0
+
+
 def cmd_telemetry(args: argparse.Namespace) -> int:
     """One-shot sensor probe or session summary."""
     config = load_config()
@@ -1051,6 +1150,9 @@ def cmd_telemetry(args: argparse.Namespace) -> int:
                     print(f"  Cost: {summary['cost']:.2f} {summary.get('currency', '')}")
                 if summary.get("co2e_kg") is not None:
                     print(f"  CO2e: {summary['co2e_kg']:.4f} kg")
+
+                for line in _sci_lines(summary):
+                    print(f"  {line}")
 
                 if summary.get("missing_sensors"):
                     print(f"  Missing sensors: {', '.join(summary['missing_sensors'])}")
@@ -1284,6 +1386,18 @@ def main(argv: list[str] | None = None) -> int:
         help="Garbage collect old telemetry data (>14 days)",
     )
     p_telemetry.set_defaults(func=cmd_telemetry)
+
+    # sci
+    p_sci = subparsers.add_parser(
+        "sci",
+        help="Software Carbon Intensity for the last session or a report",
+    )
+    p_sci.add_argument("--json", action="store_true", help="Output as JSON")
+    p_sci.add_argument(
+        "--report",
+        help="Show the carbon block of a benchmark report instead",
+    )
+    p_sci.set_defaults(func=cmd_sci)
 
     # exec
     p_exec = subparsers.add_parser("exec", help="Execute command in sandbox")

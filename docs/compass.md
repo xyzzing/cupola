@@ -102,6 +102,33 @@ Two different numbers, deliberately kept apart:
 - `tokens_per_success` — total spend divided by wins: the price of one win once
   failures are paid for.
 
+## Carbon model
+
+The same two questions, in grams of CO₂e, computed from the energy measured
+during each run window (see [sci.md](sci.md)):
+
+- `sci_gco2e_per_verified_task` — the headline SCI rate, per verified task.
+- `sci_gco2e_per_1k_tokens` — for infrastructure-level comparison.
+- `sci_gco2e_per_success` — total carbon divided by wins, matching the token
+  cost model.
+
+`metrics.carbon` carries the provenance (`I` source/basis/resolution/coverage,
+`M` method, energy tiers) and the green-software `principles` list. Carbon is
+reported, never a gate: `compare` applies no verdict on an estimated number.
+When two reports resolved intensity differently, their carbon deltas are marked
+`comparable: false` and the answer is `unknown` rather than a silent difference.
+The marginal-attribution path answers "does installing this plugin help?" with
+both a completion verdict and an SCI delta, plus the candidate's green-software
+evidence with the comparison filled in:
+
+```bash
+sinter bench compare --baseline a.json --candidate b.json \
+    --attribute marginal --arm minder=b.json
+#   carbon: helping - SCI delta -4.0 gCO2e per verified task
+#   green evidence: 4/7 principles proven [..., carbon_efficiency_proven]; ...
+sinter sci --report a.json
+```
+
 ## Operator notes
 
 - Long runs are operator-initiated; nothing here runs automatically.
