@@ -8,7 +8,7 @@
 
 **Host Environment:** Linux (Fedora / Ubuntu)
 
-**Stack Components:** Sinter Supervisor Core (Substrate), DeepSeek Harness / DSH (Agent Orchestration), Minder (Cognitive Governor), Local 27B LLM (Reasoning Engine)
+**Stack Components:** Cupola Supervisor Core (Substrate), DeepSeek Harness / DSH (Agent Orchestration), Minder (Cognitive Governor), Local 27B LLM (Reasoning Engine)
 
 ---
 
@@ -24,7 +24,7 @@ To maintain stability on a 24GB GPU and prevent scope bloat, the architecture en
 |                                                                                                    |
 |  - Document Ingestion & Chunking (Hierarchical AST & Structural Headings)                          |
 |  - Topological Plan Compilation (plan.json Directed Acyclic Graph)                                |
-|  - Workspace Checkpointing (ephemeral Git refs/sinter/checkpoints/*)                               |
+|  - Workspace Checkpointing (ephemeral Git refs/cupola/checkpoints/*)                               |
 +----------------------------------------------------------------------------------------------------+
                                  |                                   ^
     Dynamic Request Modulation   |                                   |  Reads Telemetry & State
@@ -41,12 +41,12 @@ To maintain stability on a 24GB GPU and prevent scope bloat, the architecture en
           | Direct HTTP Token Stream (Loopback 127.0.0.1:8080/v1)   |
           v                                                         |
 +-----------------------------------+             +--------------------------------------------------+
-|         INFERENCE BACKEND         |             |             SINTER SUPERVISOR CORE               |
+|         INFERENCE BACKEND         |             |             CUPOLA SUPERVISOR CORE               |
 |                                   |             |                                                  |
 |  - llama-server / vLLM (27B 4-bit)| <--- pidfd  | - Anvil: Physical VRAM & GTT Anti-Spill Guard    |
 |  - Context window: 16k tokens     |   SIGSTOP   | - Compass: 1Hz hwmon Poller & Thermal Odometer   |
 |  - Static Weights: ~14.5 GB       |   SIGCONT   | - Crucible: (PID, start_time, UUID) Authority    |
-|  - KV-Cache Allocation: ~5.5 GB   |             | - Shield: sinter exec --sandbox (Resource Jail)  |
+|  - KV-Cache Allocation: ~5.5 GB   |             | - Shield: cupola exec --sandbox (Resource Jail)  |
 +-----------------------------------+             +--------------------------------------------------+
 
 ```
@@ -55,9 +55,9 @@ To maintain stability on a 24GB GPU and prevent scope bloat, the architecture en
 
 | System Domain | Subsystem Owner | Exact Responsibility | Explicit Non-Goals |
 | --- | --- | --- | --- |
-| **Substrate & Hardware** | **Sinter** | Process lifecycle (`pidfd`), VRAM/GTT memory admission, `hwmon` thermal tracking, and isolated shell execution (`sinter exec`). | Never touches prompt tokens, never parses JSON schemas, never manages Git branches or task tickets. |
+| **Substrate & Hardware** | **Cupola** | Process lifecycle (`pidfd`), VRAM/GTT memory admission, `hwmon` thermal tracking, and isolated shell execution (`cupola exec`). | Never touches prompt tokens, never parses JSON schemas, never manages Git branches or task tickets. |
 | **Agent & Workflow** | **DSH** | File ingestion, document decomposition, LLM prompting loops, Git tree rollback checkpoints, and `plan.json` maintenance. | Never interfaces directly with Linux `sysfs` or GPU hardware registers. |
-| **Cognitive Policy** | **Minder** | Intercepts DSH requests; computes thinking token budgets (`DIRECT`, `LEAN`, `DEEP`) based on task risk and Sinter’s thermal telemetry. | Never executes shell commands or alters workspace files directly. |
+| **Cognitive Policy** | **Minder** | Intercepts DSH requests; computes thinking token budgets (`DIRECT`, `LEAN`, `DEEP`) based on task risk and Cupola’s thermal telemetry. | Never executes shell commands or alters workspace files directly. |
 
 ---
 
@@ -71,7 +71,7 @@ Total Physical VRAM: 24,576 MB (100%)
 |  Base Weights (4-bit AWQ / EXL2 / GGUF Q4_K_M)               : 14,848 MB (60.4%)   |
 |  Paged KV-Cache (16,384 Context Window, FP8 Quantized)       :  5,632 MB (22.9%)   |
 |  ROCm / CUDA Driver Buffers & Activation Overhead            :  1,536 MB  (6.2%)   |
-|  Sinter Anvil Hard Safety Margin (Anti-GTT Spill Buffer)     :  2,560 MB (10.4%)   |
+|  Cupola Anvil Hard Safety Margin (Anti-GTT Spill Buffer)     :  2,560 MB (10.4%)   |
 +------------------------------------------------------------------------------------+
 
 ```
@@ -97,7 +97,7 @@ DSH must parse documents hierarchically rather than naively stuffing raw text in
                                               v
   +-----------------------------------------------------------------------------------------+
   | STEP 2: COGNITIVE MODULATION & PLANNING PROMPT (Minder Interceptor)                     |
-  | - Checks Sinter instance.json: Verifies VRAM headroom > 2.5GB and Hotspot < 85°C.       |
+  | - Checks Cupola instance.json: Verifies VRAM headroom > 2.5GB and Hotspot < 85°C.       |
   | - Selects Mode: DEEP (High-consequence architecture synthesis).                         |
   | - Injects strict JSON-Schema grammar constraints for DAG construction.                  |
   +-----------------------------------------------------------------------------------------+
@@ -119,10 +119,10 @@ DSH must parse documents hierarchically rather than naively stuffing raw text in
                                               |
                                               v
   +-----------------------------------------------------------------------------------------+
-  | STEP 5: WORKSPACE CHECKPOINTING & DISPATCH LOCK (DSH + Sinter)                          |
-  | - DSH creates baseline Git ref: refs/sinter/checkpoints/plan_v1_baseline.               |
-  | - plan.json committed to $WORKSPACE/.sinter/plan.json.                                  |
-  | - Ready for iterative execution via sinter exec --sandbox.                              |
+  | STEP 5: WORKSPACE CHECKPOINTING & DISPATCH LOCK (DSH + Cupola)                          |
+  | - DSH creates baseline Git ref: refs/cupola/checkpoints/plan_v1_baseline.               |
+  | - plan.json committed to $WORKSPACE/.cupola/plan.json.                                  |
+  | - Ready for iterative execution via cupola exec --sandbox.                              |
   +-----------------------------------------------------------------------------------------+
 
 ```
@@ -153,14 +153,14 @@ The prompt sent to the 27B model for planning receives:
 
 ### 4.2 Minder Cognitive Policy for Planning & Ingestion
 
-Minder dynamically configures sampling flags and thinking token allocations based on task consequence and real-time Sinter hardware telemetry:
+Minder dynamically configures sampling flags and thinking token allocations based on task consequence and real-time Cupola hardware telemetry:
 
 ```
                                   INCOMING DSH REQUEST
                                             |
                                             v
                          +-------------------------------------+
-                         | Read Sinter instance.json Telemetry |
+                         | Read Cupola instance.json Telemetry |
                          +-------------------------------------+
                                             |
                     -------------------------------------------------
@@ -193,7 +193,7 @@ Minder dynamically configures sampling flags and thinking token allocations base
 
 #### Thermal Backpressure Override
 
-If Sinter's `instance.json` reports `telemetry.pacing_active == true` ($T_{\text{junction}} > 88^\circ\text{C}$):
+If Cupola's `instance.json` reports `telemetry.pacing_active == true` ($T_{\text{junction}} > 88^\circ\text{C}$):
 
 * Minder downscales `DEEP` requests to `LEAN`.
 * Minder inserts an explicit `time.sleep(1.0)` pre-dispatch delay, allowing the GPU cooling system to stabilize junction temperatures without halting the supervisor.
@@ -204,7 +204,7 @@ If Sinter's `instance.json` reports `telemetry.pacing_active == true` ($T_{\text
 
 ### 5.1 `document_manifest.json` (DSH Document Map)
 
-Stored at `$WORKSPACE/.sinter/document_manifest.json`:
+Stored at `$WORKSPACE/.cupola/document_manifest.json`:
 
 ```json
 {
@@ -236,7 +236,7 @@ Stored at `$WORKSPACE/.sinter/document_manifest.json`:
 
 ### 5.2 `plan.json` (Deterministic Task Graph)
 
-Stored at `$WORKSPACE/.sinter/plan.json`. This is the single source of truth for all autonomous coding tasks:
+Stored at `$WORKSPACE/.cupola/plan.json`. This is the single source of truth for all autonomous coding tasks:
 
 ```json
 {
@@ -257,7 +257,7 @@ Stored at `$WORKSPACE/.sinter/plan.json`. This is the single source of truth for
         "type": "AST_AND_TEST",
         "command": "pytest tests/test_waterfall_models.py"
       },
-      "checkpoint_ref": "refs/sinter/checkpoints/task_001_success"
+      "checkpoint_ref": "refs/cupola/checkpoints/task_001_success"
     },
     {
       "id": "task_002",
@@ -294,16 +294,16 @@ Stored at `$WORKSPACE/.sinter/plan.json`. This is the single source of truth for
 
 ---
 
-## 6. Sinter Substrate Primitives for Planning & Verification
+## 6. Cupola Substrate Primitives for Planning & Verification
 
-Sinter provides two out-of-band primitives to support this workflow without taking on task planning responsibilities.
+Cupola provides two out-of-band primitives to support this workflow without taking on task planning responsibilities.
 
-### 6.1 `sinter exec --sandbox` (Execution Primitive)
+### 6.1 `cupola exec --sandbox` (Execution Primitive)
 
-DSH uses `sinter exec` to validate code generated during task execution inside an isolated environment.
+DSH uses `cupola exec` to validate code generated during task execution inside an isolated environment.
 
 ```bash
-sinter exec --sandbox --timeout 15 --max-memory-mb 2048 -- pytest tests/test_dscr.py
+cupola exec --sandbox --timeout 15 --max-memory-mb 2048 -- pytest tests/test_dscr.py
 
 ```
 
@@ -314,15 +314,15 @@ sinter exec --sandbox --timeout 15 --max-memory-mb 2048 -- pytest tests/test_dsc
 * `RLIMIT_CPU`: Limits CPU runtime to 15 seconds to kill runaway loops.
 
 
-* **Process Group Isolation:** Spawns via `subprocess.Popen` with `preexec_fn=os.setsid`. On timeout or error, Sinter terminates the entire process group cleanly via `os.killpg(p.pid, signal.SIGKILL)`.
+* **Process Group Isolation:** Spawns via `subprocess.Popen` with `preexec_fn=os.setsid`. On timeout or error, Cupola terminates the entire process group cleanly via `os.killpg(p.pid, signal.SIGKILL)`.
 * **Environment Scrubbing:** Drops environment variables matching `*TOKEN*`, `*KEY*`, `*SECRET*`, or `SSH_*`. Passes only `PATH`, `LANG`, and `VIRTUAL_ENV`.
 
 ### 6.2 Atomic Telemetry Broadcast (`instance.json`)
 
-Sinter continuously refreshes `$XDG_STATE_HOME/sinter/instance.json` at 1 Hz via an atomic rename operation (`.tmp` $\rightarrow$ `instance.json`).
+Cupola continuously refreshes `$XDG_STATE_HOME/cupola/instance.json` at 1 Hz via an atomic rename operation (`.tmp` $\rightarrow$ `instance.json`).
 
 ```python
-# Minimal Sinter Atomic State Updater
+# Minimal Cupola Atomic State Updater
 def update_state_atomic(state_data: dict, target_path: Path):
     temp_path = target_path.with_suffix(".tmp")
     with open(temp_path, "w", encoding="utf-8") as f:
@@ -341,9 +341,9 @@ def update_state_atomic(state_data: dict, target_path: Path):
 | --- | --- | --- | --- |
 | **Circular Plan Dependencies** | Model hallucinates mutual requirements ($A \rightarrow B \rightarrow A$). | DSH Plan Validator during Kahn's topological sort. | DSH rejects plan, isolates the cycle nodes, and calls 27B model in `LEAN` mode with targeted error: `"Cycle detected between task_002 and task_003. Restructure dependencies."` |
 | **Document Context Exhaustion** | Target documentation exceeds the 16k context window. | DSH Document Ingestor during token estimation. | Pre-processor strips non-structural prose, summarizes code bodies to interface stubs, and builds an anchor map to split the document across multiple ingestion passes. |
-| **GTT Memory Spillover** | Dynamic KV-cache expansion pushes total allocations past physical VRAM. | Sinter Anvil polling `/sys/class/drm/card*/device/mem_info_gtt_used`. | Anvil flags `gtt_spill_detected: true` in `instance.json`. Minder immediately clamps the 27B model's `max_tokens` ceiling and enforces prompt truncation. |
-| **Thermal Saturation During Planning** | Long `DEEP` reasoning chain heats silicon past $88^\circ\text{C}$. | Sinter Compass reading `hwmon` junction sensor. | Compass sets `pacing_active: true`. Minder down-regulates subsequent turns to `LEAN` mode (1k token budget) and inserts pacing sleeps between turns. |
-| **Syntax-Breaking Code Output** | Model outputs incomplete or invalid Python syntax during task execution. | DSH AST Parser (`ast.parse`). | Catches `SyntaxError` before executing tests. Sinter triggers a hard Git checkout revert to the task's starting checkpoint, returning line-level tracebacks to the model. |
+| **GTT Memory Spillover** | Dynamic KV-cache expansion pushes total allocations past physical VRAM. | Cupola Anvil polling `/sys/class/drm/card*/device/mem_info_gtt_used`. | Anvil flags `gtt_spill_detected: true` in `instance.json`. Minder immediately clamps the 27B model's `max_tokens` ceiling and enforces prompt truncation. |
+| **Thermal Saturation During Planning** | Long `DEEP` reasoning chain heats silicon past $88^\circ\text{C}$. | Cupola Compass reading `hwmon` junction sensor. | Compass sets `pacing_active: true`. Minder down-regulates subsequent turns to `LEAN` mode (1k token budget) and inserts pacing sleeps between turns. |
+| **Syntax-Breaking Code Output** | Model outputs incomplete or invalid Python syntax during task execution. | DSH AST Parser (`ast.parse`). | Catches `SyntaxError` before executing tests. Cupola triggers a hard Git checkout revert to the task's starting checkpoint, returning line-level tracebacks to the model. |
 
 ---
 
@@ -353,4 +353,4 @@ def update_state_atomic(state_data: dict, target_path: Path):
 2. **Context Ceiling Enforcement:** At no point during document ingestion, planning, or code verification may context size exceed 16,384 tokens, maintaining a minimum of 2.5 GB of free physical VRAM at all times.
 3. **Zero GTT Memory Thrashing:** `/sys/class/drm/card*/device/mem_info_gtt_used` must read `0 bytes` throughout long-running planning and generation sessions.
 4. **Clean Worktree Isolation:** 100% of failed verification runs must cleanly roll back workspace modifications to the pre-task Git ref without leaving orphan files or lingering background processes.
-5. **Standard-Library Compliance:** The Sinter Supervisor Core and its CLI execution utilities must run on Python 3.10+ without installing external dependencies via `pip`.
+5. **Standard-Library Compliance:** The Cupola Supervisor Core and its CLI execution utilities must run on Python 3.10+ without installing external dependencies via `pip`.

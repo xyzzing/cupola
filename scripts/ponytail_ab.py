@@ -195,7 +195,7 @@ def _run_arm(system: str, out: Path, runs: int, task: str | None) -> int:
     import os
     env = dict(os.environ)
     env.setdefault("PYTHONPATH", str(REPO / "src"))
-    argv = [sys.executable, "-m", "sinter.cli", "bench", "suite", "run",
+    argv = [sys.executable, "-m", "cupola.cli", "bench", "suite", "run",
             "--suite", "coding-core-v2", "--system", system, "--execute",
             "--runs", str(runs), "--out", str(out)]
     if task:
@@ -222,7 +222,7 @@ def compare(_args) -> int:
     for path in (baseline_report, candidate_report):
         if not path.is_file():
             sys.exit(f"error: missing {path}; run baseline and candidate first")
-    argv = [sys.executable, "-m", "sinter.cli", "bench", "compare",
+    argv = [sys.executable, "-m", "cupola.cli", "bench", "compare",
             "--baseline", str(baseline_report),
             "--candidate", str(candidate_report),
             "--attribute", "marginal",

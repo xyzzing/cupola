@@ -1,4 +1,4 @@
-# Sinter Hardware & Environment Observations (T00)
+# Cupola Hardware & Environment Observations (T00)
 
 ## 1. System Inventory
 - Host Kernel: 7.2.5-200.fc44.x86_64

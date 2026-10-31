@@ -1,8 +1,8 @@
-"""Tests for SINTER hardware probing."""
+"""Tests for CUPOLA hardware probing."""
 
 from __future__ import annotations
 
-from sinter.hardware import (
+from cupola.hardware import (
     check_llama_server,
     get_cpu_info,
     get_gpu_info,

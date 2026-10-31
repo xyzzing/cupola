@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from sinter.plan import (
+from cupola.plan import (
     Plan,
     Task,
     TaskPhase,

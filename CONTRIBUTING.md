@@ -1,13 +1,13 @@
-# Contributing to Sinter
+# Contributing to Cupola
 
-Thank you for your interest in contributing to Sinter!
+Thank you for your interest in contributing to Cupola!
 
 ## Development Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/sinter-project/sinter.git
-cd sinter
+git clone https://github.com/cupola-project/cupola.git
+cd cupola
 
 # Install dependencies
 pip install -e .
@@ -48,7 +48,7 @@ python3 -m pytest tests/ -v
 
 ## Architecture
 
-Sinter follows a strict separation of concerns:
+Cupola follows a strict separation of concerns:
 - **Supervisor**: Process lifecycle management
 - **Admission**: Pre-flight resource checks
 - **Hardware**: System probing

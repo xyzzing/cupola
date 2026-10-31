@@ -12,9 +12,9 @@ from pathlib import Path
 
 import pytest
 
-from sinter import suites as suites_mod
-from sinter.cli import main
-from sinter.suites import (
+from cupola import suites as suites_mod
+from cupola.cli import main
+from cupola.suites import (
     FORBIDDEN_VOCABULARY,
     SuiteError,
     benchmarks_root,
@@ -218,9 +218,9 @@ def test_plan_run_flags_unknown_task_and_missing_system(tmp_path):
 
 
 def test_benchmarks_root_env_override(monkeypatch, tmp_path):
-    monkeypatch.setenv("SINTER_BENCHMARKS_DIR", str(tmp_path))
+    monkeypatch.setenv("CUPOLA_BENCHMARKS_DIR", str(tmp_path))
     assert benchmarks_root() == tmp_path
-    monkeypatch.delenv("SINTER_BENCHMARKS_DIR")
+    monkeypatch.delenv("CUPOLA_BENCHMARKS_DIR")
     assert benchmarks_root().name == "benchmarks"
 
 
@@ -287,7 +287,7 @@ def test_cli_lane_diff_reports_a_change(capsys, tmp_path):
 
 
 def test_cli_legacy_bench_profile_form_still_routes(capsys):
-    """`sinter bench <profile>` must keep working after the subcommand split."""
+    """`cupola bench <profile>` must keep working after the subcommand split."""
     rc = main(["bench", "nosuchprofile"])
     assert rc == 1
     assert "not found in configuration" in capsys.readouterr().out

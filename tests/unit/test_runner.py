@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from sinter.harness import TRANSPORT_HTTP, System
-from sinter.runner import (
+from cupola.harness import TRANSPORT_HTTP, System
+from cupola.runner import (
     STS_BREACHED,
     STS_ERROR,
     STS_FAILED,
@@ -29,7 +29,7 @@ from sinter.runner import (
     stage_workspace,
     tail_log,
 )
-from sinter.suites import load_suite
+from cupola.suites import load_suite
 
 BENCH_ROOT = Path(__file__).resolve().parents[2] / "benchmarks"
 STUB = Path(__file__).resolve().parents[1] / "fixtures" / "stub_agent.py"

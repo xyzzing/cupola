@@ -3,12 +3,12 @@
 
 import pytest
 
-from sinter.minder import (
+from cupola.minder import (
     TaskType,
     ThinkingMode,
     evaluate_policy,
 )
-from sinter.telemetry import TelemetryState
+from cupola.telemetry import TelemetryState
 
 
 def test_policy_planning_deep_mode():

@@ -1,4 +1,4 @@
-# Sinter Phase 2 Development Plan
+# Cupola Phase 2 Development Plan
 
 ## Overview
 Smart backend management and performance optimization to reduce manual configuration and prevent compatibility issues between models, hardware, and the llama.cpp backend.
@@ -9,8 +9,8 @@ Smart backend management and performance optimization to reduce manual configura
 
 **Version Detection**
 - Query llama-server binary for version information
-- Track backend version in Sinter state/config
-- Display version in `sinter doctor` output
+- Track backend version in Cupola state/config
+- Display version in `cupola doctor` output
 
 **Feature Detection**
 - Test which features the binary supports:
@@ -28,9 +28,9 @@ Smart backend management and performance optimization to reduce manual configura
 
 **Update Command**
 ```bash
-sinter update --backend              # Update to latest
-sinter update --backend 0.2.5        # Update to specific version
-sinter update --backend --recompile  # Force recompile
+cupola update --backend              # Update to latest
+cupola update --backend 0.2.5        # Update to specific version
+cupola update --backend --recompile  # Force recompile
 ```
 - Download/clone specified version
 - Build from source
@@ -43,7 +43,7 @@ llama-server version: 0.2.3
   ✓ flash_attn supported
   ✓ q4_0 cache supported
   ⚠ ROCm optimizations (added in 0.3.0) not available
-  → Run 'sinter update --backend' to get latest features
+  → Run 'cupola update --backend' to get latest features
 ```
 
 ### 2. Automatic Context Size Benchmarking
@@ -61,8 +61,8 @@ llama-server version: 0.2.3
 
 **Bench Command**
 ```bash
-sinter bench --profile coding
-sinter bench --profile coding --context-sizes 8192,16384,32768,65536
+cupola bench --profile coding
+cupola bench --profile coding --context-sizes 8192,16384,32768,65536
 ```
 
 Output:
@@ -94,10 +94,10 @@ Recommendation: Set ctx_size to 49152 for optimal performance
 
 **Validation Warnings**
 ```bash
-$ sinter validate my-profile
+$ cupola validate my-profile
 Warning: Model qwen2.5-27b benefits from flash_attn,
          but your llama-server binary doesn't support it.
-         Run 'sinter update --backend' to improve performance.
+         Run 'cupola update --backend' to improve performance.
 ```
 
 **Upgrade Guidance**
@@ -122,8 +122,8 @@ Warning: Model qwen2.5-27b benefits from flash_attn,
 
 ## Success Criteria
 
-- User can run `sinter doctor` and see clear compatibility status
-- User can run `sinter bench` to find optimal settings
+- User can run `cupola doctor` and see clear compatibility status
+- User can run `cupola bench` to find optimal settings
 - User gets warnings before launching incompatible model/backend combos
-- User can easily update backend with `sinter update --backend`
+- User can easily update backend with `cupola update --backend`
 - All changes are backward compatible with existing profiles

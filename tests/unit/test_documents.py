@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from sinter.documents import (
+from cupola.documents import (
     parse_csv_file,
     parse_document,
     parse_markdown,

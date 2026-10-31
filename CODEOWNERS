@@ -2,12 +2,12 @@
 # Format: <path> <owner>
 
 # Core team owns everything
-* @sinter-project/maintainers
+* @cupola-project/maintainers
 
 # Configuration and docs
-docs/ @sinter-project/docs
-.github/ @sinter-project/infra
+docs/ @cupola-project/docs
+.github/ @cupola-project/infra
 
 # Source code
-src/ @sinter-project/core
-tests/ @sinter-project/core
+src/ @cupola-project/core
+tests/ @cupola-project/core

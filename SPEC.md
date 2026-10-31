@@ -2,19 +2,19 @@
 
 ## 1. Specification Overview
 
-`sinter` is an auditable, reproducible local inference supervisor for a single developer operating an AMD Radeon workstation under Linux (Ubuntu / Fedora) [cite: 3]. It manages an upstream `llama-server` process, providing deterministic process supervision, conservative pre-flight admission checks, and verifiable lifecycle transitions without running an in-path HTTP proxy [cite: 3].
+`cupola` is an auditable, reproducible local inference supervisor for a single developer operating an AMD Radeon workstation under Linux (Ubuntu / Fedora) [cite: 3]. It manages an upstream `llama-server` process, providing deterministic process supervision, conservative pre-flight admission checks, and verifiable lifecycle transitions without running an in-path HTTP proxy [cite: 3].
 
 ---
 
 ## 2. Process Lifecycle & State Machine
 
-The supervisor controls backend lifecycle transitions via a finite state machine (FSM) [cite: 3]. All mutations require holding an exclusive file lock (`sinter.lock`) located in `$XDG_RUNTIME_DIR/sinter/` [cite: 3].
+The supervisor controls backend lifecycle transitions via a finite state machine (FSM) [cite: 3]. All mutations require holding an exclusive file lock (`cupola.lock`) located in `$XDG_RUNTIME_DIR/cupola/` [cite: 3].
 
 ```
                  ┌──────────────┐
                  │   STOPPED    │◄────────────────────────────────┐
                  └──────┬───────┘                                 │
-                        │ sinter up <profile>                     │
+                        │ cupola up <profile>                     │
                         ▼                                         │
                  ┌──────────────┐                                 │
                  │  VALIDATING  │───► [Validation Failure] ───────┤
@@ -27,7 +27,7 @@ The supervisor controls backend lifecycle transitions via a finite state machine
                         │ backend `/health` OK                    │
                         ▼                                         │
                  ┌──────────────┐                                 │
-                 │    READY     │───► sinter down ────────────────┤
+                 │    READY     │───► cupola down ────────────────┤
                  └──────┬───────┘                                 │
                         │                                         │
                         │ child process crash / unhandled exit    │
@@ -48,7 +48,7 @@ The supervisor controls backend lifecycle transitions via a finite state machine
 
 ### 2.2 Process Control Invariants
 1. **Ownership Authority:** A PID alone is never authority to issue POSIX signals [cite: 3]. Process identification must verify `(PID, start_time, instance_uuid)` against the recorded launch descriptor before dispatching `SIGTERM` or `SIGKILL` [cite: 3].
-2. **Port Conflict Protection:** If an assigned port is occupied during launch, `sinter` aborts with an actionable error [cite: 3]. It must never signal or terminate unrelated processes listening on that port [cite: 3].
+2. **Port Conflict Protection:** If an assigned port is occupied during launch, `cupola` aborts with an actionable error [cite: 3]. It must never signal or terminate unrelated processes listening on that port [cite: 3].
 3. **Graceful Shutdown Bounds:**
    * `SIGTERM` issued; poll exit for up to `stop_timeout_seconds` (default: 10s) [cite: 3].
    * If process remains active, issue `SIGKILL` and observe for `kill_timeout_seconds` (default: 5s) [cite: 3].
@@ -58,7 +58,7 @@ The supervisor controls backend lifecycle transitions via a finite state machine
 
 ## 3. Pre-Flight Memory Admission (Anvil)
 
-Sinter rejects mathematical claims of "zero OOM guarantees" [cite: 3]. Memory planning acts as a conservative admission gate based on bounded metadata parsing and real-time sysfs telemetry [cite: 3].
+Cupola rejects mathematical claims of "zero OOM guarantees" [cite: 3]. Memory planning acts as a conservative admission gate based on bounded metadata parsing and real-time sysfs telemetry [cite: 3].
 
 ### 3.1 Admission Formula
 
@@ -92,22 +92,22 @@ Where:
 
 ## 4. CLI Contract & Subcommands
 
-Sinter exposes its interface via standard subcommands returning human-readable text or structured JSON (`--json`) [cite: 3]:
+Cupola exposes its interface via standard subcommands returning human-readable text or structured JSON (`--json`) [cite: 3]:
 
 | Command | Signature | Description |
 | :--- | :--- | :--- |
-| `sinter doctor` | `sinter doctor [--json]` | Read-only report of PCI identity, ROCm/amdgpu sysfs nodes, OS version, and dependency versions [cite: 3]. |
-| `sinter profile validate` | `sinter profile validate <profile>` | Validates TOML manifest, checks file paths, parses bounded GGUF metadata, and validates SHA256 hashes without loading weights [cite: 3]. |
-| `sinter plan` | `sinter plan <profile> [--json]` | Computes requested vs. effective settings, KV cache size, and VRAM budget against live sysfs readings [cite: 3]. No process execution [cite: 3]. |
-| `sinter up` | `sinter up <profile> [--foreground]` | Acquires lock, verifies admission, starts `llama-server` via direct subprocess, and polls `/health` until ready [cite: 3]. |
-| `sinter status` | `sinter status [--json]` | Inspects instance state file, verifies backend PID existence, returns operational uptime, context length, and ports [cite: 3]. |
-| `sinter down` | `sinter down` | Reaps owned backend via verified `(PID, start_time)` check and cleans temporary state; idempotent [cite: 3]. |
+| `cupola doctor` | `cupola doctor [--json]` | Read-only report of PCI identity, ROCm/amdgpu sysfs nodes, OS version, and dependency versions [cite: 3]. |
+| `cupola profile validate` | `cupola profile validate <profile>` | Validates TOML manifest, checks file paths, parses bounded GGUF metadata, and validates SHA256 hashes without loading weights [cite: 3]. |
+| `cupola plan` | `cupola plan <profile> [--json]` | Computes requested vs. effective settings, KV cache size, and VRAM budget against live sysfs readings [cite: 3]. No process execution [cite: 3]. |
+| `cupola up` | `cupola up <profile> [--foreground]` | Acquires lock, verifies admission, starts `llama-server` via direct subprocess, and polls `/health` until ready [cite: 3]. |
+| `cupola status` | `cupola status [--json]` | Inspects instance state file, verifies backend PID existence, returns operational uptime, context length, and ports [cite: 3]. |
+| `cupola down` | `cupola down` | Reaps owned backend via verified `(PID, start_time)` check and cleans temporary state; idempotent [cite: 3]. |
 
 ---
 
 ## 5. Security & Isolation Boundaries
 
-1. **No In-Path Execution of Agent Tools:** Sinter does not evaluate, parse, or execute model-generated bash commands or tool calls [cite: 3]. Agent sandboxing, containerization, and tool confirmation belong strictly to the external coding agent [cite: 3].
+1. **No In-Path Execution of Agent Tools:** Cupola does not evaluate, parse, or execute model-generated bash commands or tool calls [cite: 3]. Agent sandboxing, containerization, and tool confirmation belong strictly to the external coding agent [cite: 3].
 2. **Loopback & Private Sockets:** Backend binds strictly to `127.0.0.1` [cite: 3]. No external network exposure by default [cite: 3].
 3. **Bounded Metadata Reading:** GGUF parser reads tensor headers using bounded chunk streams, rejecting malformed structures, unapproved symlinks, and files outside whitelisted directories [cite: 3].
 4. **Privacy:** Logs exclude prompts, generated code completions, and reasoning tags [cite: 3]. Only operational metrics, error traces, and backend diagnostic outputs are retained [cite: 3].

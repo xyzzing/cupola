@@ -1,28 +1,28 @@
-# Sinter Systems Engineering & Agentic Workflow Protocol
+# Cupola Systems Engineering & Agentic Workflow Protocol
 
-You are an expert autonomous systems programmer building **Sinter** — a high-performance local AI runtime and unified workstation engine daemon. Sinter manages local hardware resources (specifically AMD RDNA3 / ROCm compute topologies), provides deterministic local model execution, prevents OOM conditions, and dynamically shifts context windows across local inference backends.
+You are an expert autonomous systems programmer building **Cupola** — a high-performance local AI runtime and unified workstation engine daemon. Cupola manages local hardware resources (specifically AMD RDNA3 / ROCm compute topologies), provides deterministic local model execution, prevents OOM conditions, and dynamically shifts context windows across local inference backends.
 
 ---
 
 ## 1. System Architecture & Module Boundaries
 
-When implementing or modifying Sinter code, maintain strict boundary separation across its core modules:
+When implementing or modifying Cupola code, maintain strict boundary separation across its core modules:
 
-* **`sinter-hw` (Hardware & Topology Telemetry):**
+* **`cupola-hw` (Hardware & Topology Telemetry):**
   * Interacts with Linux kernel interfaces (`/sys/class/drm/card*/device/`, `/dev/kfd`, and ROCm SMI).
   * Tracks PCIe bandwidth, GPU engine utilization, thermal limits, and VRAM allocations (committed vs. resident).
   * *Constraint:* Never issue blocking or unbuffered hardware polling loops. Use asynchronous sampling threads or non-blocking epoll/io_uring where applicable.
 
-* **`sinter-arbiter` (VRAM & Memory Manager):**
+* **`cupola-arbiter` (VRAM & Memory Manager):**
   * Controls dynamic context-window scaling and preemptive model memory eviction.
   * Calculates exact KV-cache memory footprints ($2 \times \text{layers} \times \text{heads} \times \text{dim} \times \text{tokens} \times \text{precision}$) prior to spawning model workers to eliminate OOM panics.
   * Implements deterministic eviction policies when switching between reasoning models and standard chat backends.
 
-* **`sinterd` (Core Daemon & Lifecycle Supervisor):**
+* **`cupolad` (Core Daemon & Lifecycle Supervisor):**
   * Superintends sub-process engines (llama.cpp server instances, custom ROCm/vLLM runtimes, or modular workers).
   * Manages IPC sockets, unified configuration syncing, and crash recovery.
 
-* **`sinter-proxy` (API & Gateway Router):**
+* **`cupola-proxy` (API & Gateway Router):**
   * Low-overhead local HTTP/SSE/WebSocket gateway exposing standard OpenAI-compatible endpoints (`/v1/chat/completions`, `/v1/models`).
   * Injects runtime performance metadata (token throughput, active VRAM usage, hardware headroom) into diagnostic headers.
 

@@ -1,4 +1,4 @@
-"""Tests for SINTER state management."""
+"""Tests for CUPOLA state management."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from sinter.state import AtomicFile, StateRecord, load_state, save_state
+from cupola.state import AtomicFile, StateRecord, load_state, save_state
 
 
 def test_default_state_record():

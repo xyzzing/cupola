@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from sinter.graders import (
+from cupola.graders import (
     GRADERS,
     GradeContext,
     grade,
@@ -26,7 +26,7 @@ from sinter.graders import (
     grade_schema,
     overall,
 )
-from sinter.harness import (
+from cupola.harness import (
     PONYTAIL_OFF,
     PONYTAIL_ON,
     TRANSPORT_HTTP,
@@ -37,7 +37,7 @@ from sinter.harness import (
     resolved_binary,
     system_from_dict,
 )
-from sinter.suites import GraderSpec
+from cupola.suites import GraderSpec
 
 
 def _ctx(tmp_path: Path) -> GradeContext:
@@ -141,7 +141,7 @@ def test_pytest_grader_detects_a_rewritten_acceptance_file(tmp_path):
     """Greening the suite by editing it must not count as a pass."""
     test_file = tmp_path / "test_task.py"
     test_file.write_text("def test_x():\n    assert True\n")
-    from sinter.lanes import sha256_file
+    from cupola.lanes import sha256_file
     honest = sha256_file(test_file)
 
     spec = GraderSpec("pytest", {
@@ -340,7 +340,7 @@ def test_perf_grader_claims_nothing():
 
 
 def test_every_declared_grader_type_has_an_implementation():
-    from sinter.suites import GRADER_TYPES
+    from cupola.suites import GRADER_TYPES
     assert set(GRADER_TYPES) == set(GRADERS)
 
 

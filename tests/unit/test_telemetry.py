@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from sinter.telemetry import (
+from cupola.telemetry import (
     SentinelSampler,
     TelemetryState,
     collect_telemetry,
@@ -63,7 +63,7 @@ def test_telemetry_state_dataclass():
 
 def test_collect_telemetry_with_mock_sensors():
     """collect_telemetry uses sensors probe."""
-    from sinter.sensors import SensorReading
+    from cupola.sensors import SensorReading
 
     mock_reading = SensorReading(
         ts="2024-01-01T00:00:00+00:00",
@@ -76,7 +76,7 @@ def test_collect_telemetry_with_mock_sensors():
         vram_total_bytes=16106127360,
     )
 
-    with patch("sinter.telemetry.probe_sensors", return_value=mock_reading):
+    with patch("cupola.telemetry.probe_sensors", return_value=mock_reading):
         state = collect_telemetry()
 
         assert state.hotspot_celsius == 85.0
@@ -90,7 +90,7 @@ def test_collect_telemetry_with_mock_sensors():
 
 def test_pacing_active_high_temperature():
     """Pacing active when hotspot > 88°C."""
-    from sinter.sensors import SensorReading
+    from cupola.sensors import SensorReading
 
     mock_reading = SensorReading(
         ts="2024-01-01T00:00:00+00:00",
@@ -103,7 +103,7 @@ def test_pacing_active_high_temperature():
         vram_total_bytes=16106127360,
     )
 
-    with patch("sinter.telemetry.probe_sensors", return_value=mock_reading):
+    with patch("cupola.telemetry.probe_sensors", return_value=mock_reading):
         state = collect_telemetry()
 
         assert state.pacing_active is True
@@ -112,7 +112,7 @@ def test_pacing_active_high_temperature():
 
 def test_pacing_active_low_vram():
     """Pacing active when VRAM < 1.5GB."""
-    from sinter.sensors import SensorReading
+    from cupola.sensors import SensorReading
 
     mock_reading = SensorReading(
         ts="2024-01-01T00:00:00+00:00",
@@ -124,7 +124,7 @@ def test_pacing_active_low_vram():
         vram_total_bytes=16106127360,
     )
 
-    with patch("sinter.telemetry.probe_sensors", return_value=mock_reading):
+    with patch("cupola.telemetry.probe_sensors", return_value=mock_reading):
         state = collect_telemetry()
 
         assert state.pacing_active is True
@@ -133,7 +133,7 @@ def test_pacing_active_low_vram():
 
 def test_energy_tier3_integration():
     """Energy computation via power integration (Tier 3)."""
-    from sinter.sensors import SensorReading
+    from cupola.sensors import SensorReading
 
     # 10 samples at 1 Hz, 100W each = 1000J = 0.0002778 kWh
     samples = []
@@ -154,7 +154,7 @@ def test_energy_tier3_integration():
 
 def test_energy_tier3_missing_samples():
     """Energy computation with missing power samples."""
-    from sinter.sensors import SensorReading
+    from cupola.sensors import SensorReading
 
     samples = []
     for i in range(5):

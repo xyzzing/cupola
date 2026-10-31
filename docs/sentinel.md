@@ -1,11 +1,11 @@
 # Sentinel — Session Telemetry
 
-Sentinel provides session-scoped, out-of-band telemetry for Sinter-managed `llama-server` processes on AMD ROCm workstations. It measures temperature, power, energy consumption, and optionally estimates electricity cost and carbon emissions.
+Sentinel provides session-scoped, out-of-band telemetry for Cupola-managed `llama-server` processes on AMD ROCm workstations. It measures temperature, power, energy consumption, and optionally estimates electricity cost and carbon emissions.
 
 ## Features
 
 - **Passive monitoring**: No HTTP proxying or in-path sampling on the inference request path
-- **Session-scoped**: Samples only while a verified Sinter instance is running
+- **Session-scoped**: Samples only while a verified Cupola instance is running
 - **Measurement tiers**: Transparent quality indicators for energy measurements
 - **Thermal policy**: Advisory warnings with optional critical stop
 - **Local estimates only**: Cost and CO₂e are operational estimates, not ESG accounting
@@ -22,7 +22,7 @@ Sentinel provides session-scoped, out-of-band telemetry for Sinter-managed `llam
 
 ## Configuration
 
-Add to `~/.config/sinter/config.toml`:
+Add to `~/.config/cupola/config.toml`:
 
 ```toml
 [sentinel]
@@ -48,19 +48,19 @@ allow_assumed_power = false
 
 ```bash
 # One-shot sensor probe
-sinter telemetry
+cupola telemetry
 
 # JSON output
-sinter telemetry --json
+cupola telemetry --json
 
 # Last session summary
-sinter telemetry --session
+cupola telemetry --session
 
 # Garbage collect old telemetry (>14 days)
-sinter telemetry --gc
+cupola telemetry --gc
 
 # Status includes telemetry
-sinter status
+cupola status
 ```
 
 ## What Sentinel Is Not
@@ -72,11 +72,11 @@ sinter status
 
 ## RAM Disk Management
 
-Sinter supports moving LLM model weights to a RAM disk (tmpfs) for faster loading by llama-server.
+Cupola supports moving LLM model weights to a RAM disk (tmpfs) for faster loading by llama-server.
 
 ### Configuration
 
-Add to `~/.config/sinter/config.toml`:
+Add to `~/.config/cupola/config.toml`:
 
 ```toml
 [ramdisk]
@@ -86,22 +86,22 @@ warn_used_pct = 80
 critical_used_pct = 90
 ```
 
-Or use environment variable: `SINTER_RAMDISK_PATH=/mnt/ai_ramdisk`
+Or use environment variable: `CUPOLA_RAMDISK_PATH=/mnt/ai_ramdisk`
 
 ### CLI Commands
 
 ```bash
 # Show RAM disk status
-sinter ramdisk status
+cupola ramdisk status
 
 # List models on RAM disk
-sinter ramdisk list
+cupola ramdisk list
 
 # Copy model to RAM disk
-sinter ramdisk up coding
+cupola ramdisk up coding
 
 # Remove model from RAM disk
-sinter ramdisk down coding
+cupola ramdisk down coding
 ```
 
 ### How It Works
@@ -112,7 +112,7 @@ sinter ramdisk down coding
 
 ### Monitoring
 
-RAM disk status is included in `sinter doctor` and `sinter status` output, showing:
+RAM disk status is included in `cupola doctor` and `cupola status` output, showing:
 - Total size, used space, available space
 - Usage percentage
 - Quality assessment (ok/degraded/unavailable)

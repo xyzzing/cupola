@@ -7,26 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Renamed sinter to cupola (package, module, CLI, docs); issue #3.
+
 ### Added
 - **RAM disk management** — copy models to/from tmpfs for fast loading
-  - `sinter ramdisk status` — show RAM disk usage and quality
-  - `sinter ramdisk list` — list models on RAM disk
-  - `sinter ramdisk up <profile>` — copy model to RAM disk
-  - `sinter ramdisk down <profile>` — remove model from RAM disk
+  - `cupola ramdisk status` — show RAM disk usage and quality
+  - `cupola ramdisk list` — list models on RAM disk
+  - `cupola ramdisk up <profile>` — copy model to RAM disk
+  - `cupola ramdisk down <profile>` — remove model from RAM disk
   - Configurable via `[ramdisk]` section in config.toml
-  - Supports `SINTER_RAMDISK_PATH` environment variable override
+  - Supports `CUPOLA_RAMDISK_PATH` environment variable override
 - **Sentinel telemetry** — session-scoped temperature, power, energy monitoring
 - Energy measurement tiers (wall-meter, hwmon counter, power integration, assumed)
 - Optional electricity cost and CO₂e estimates via `[accounting]` config
 - Thermal policy with advisory warnings and optional critical stop
-- `sinter telemetry` command (one-shot probe, session summary, garbage collection)
-- `sinter status` now includes live telemetry quality and readings
-- `sinter doctor` includes one-shot sensor probe
+- `cupola telemetry` command (one-shot probe, session summary, garbage collection)
+- `cupola status` now includes live telemetry quality and readings
+- `cupola doctor` includes one-shot sensor probe
 - Backend version and feature detection
-- Context size benchmarking (`sinter bench`)
-- Backend update management (`sinter update --backend`)
-- Compatibility validation in `sinter validate`
-- Enhanced `sinter doctor` with feature detection
+- Context size benchmarking (`cupola bench`)
+- Backend update management (`cupola update --backend`)
+- Compatibility validation in `cupola validate`
+- Enhanced `cupola doctor` with feature detection
 
 ### Changed
 - Improved error messages and diagnostics
@@ -37,11 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Process supervision with finite state machine
 - Memory admission checks with safety reserves
-- Hardware probing (`sinter doctor`)
-- Profile validation (`sinter validate`)
-- Resource planning (`sinter plan`)
-- Backend lifecycle management (`sinter up`/`down`)
-- Instance status reporting (`sinter status`)
-- Sandboxed command execution (`sinter exec`)
-- Interactive setup wizard (`sinter setup`)
+- Hardware probing (`cupola doctor`)
+- Profile validation (`cupola validate`)
+- Resource planning (`cupola plan`)
+- Backend lifecycle management (`cupola up`/`down`)
+- Instance status reporting (`cupola status`)
+- Sandboxed command execution (`cupola exec`)
+- Interactive setup wizard (`cupola setup`)
 - Comprehensive test suite (129 tests)

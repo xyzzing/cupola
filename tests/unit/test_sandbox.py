@@ -5,7 +5,7 @@ import tempfile
 
 import pytest
 
-from sinter.sandbox import SandboxResult, run_sandboxed
+from cupola.sandbox import SandboxResult, run_sandboxed
 
 
 def test_sandbox_basic_command():

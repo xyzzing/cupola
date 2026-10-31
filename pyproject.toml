@@ -3,13 +3,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "sinter"
+name = "cupola"
 version = "0.1.0"
 description = "Local inference supervisor for AMD ROCm workstations"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {file = "LICENSE"}
-authors = [{name = "SINTER Contributors"}]
+authors = [{name = "CUPOLA Contributors"}]
 keywords = ["llama.cpp", "rocm", "inference", "supervisor", "gguf"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -22,11 +22,11 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-homepage = "https://github.com/xyzzing/sinter"
-repository = "https://github.com/xyzzing/sinter"
+homepage = "https://github.com/xyzzing/cupola"
+repository = "https://github.com/xyzzing/cupola"
 
 [project.scripts]
-sinter = "sinter.cli:main"
+cupola = "cupola.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -35,4 +35,4 @@ markers = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/sinter"]
+packages = ["src/cupola"]

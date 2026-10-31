@@ -1,4 +1,4 @@
-"""Tests for SINTER GGUF parser."""
+"""Tests for CUPOLA GGUF parser."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import struct
 import tempfile
 from pathlib import Path
 
-from sinter.gguf import read_gguf_header
+from cupola.gguf import read_gguf_header
 
 
 def _make_gguf_file(path: Path, version: int = 3,

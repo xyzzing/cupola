@@ -31,9 +31,9 @@ from pathlib import Path
 
 
 def _session_root() -> Path:
-    # The runner exports SINTER_DSH_SESSIONS so a harness writes its log where
+    # The runner exports CUPOLA_DSH_SESSIONS so a harness writes its log where
     # the budget watcher looks; STUB_DSH_HOME is the test-only override.
-    explicit = os.environ.get("SINTER_DSH_SESSIONS")
+    explicit = os.environ.get("CUPOLA_DSH_SESSIONS")
     if explicit:
         return Path(explicit)
     root = os.environ.get("STUB_DSH_HOME")

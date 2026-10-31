@@ -1,28 +1,28 @@
-# Sinter Operational Guide
+# Cupola Operational Guide
 
 ## Quick Start
 
 ```bash
-sinter doctor          # Check system health
-sinter validate coding # Validate profile
-sinter plan coding     # Plan settings
-sinter up coding       # Start llama-server
-sinter status          # Check status
-sinter down            # Stop llama-server
+cupola doctor          # Check system health
+cupola validate coding # Validate profile
+cupola plan coding     # Plan settings
+cupola up coding       # Start llama-server
+cupola status          # Check status
+cupola down            # Stop llama-server
 ```
 
 ## Commands
 
-- `sinter doctor [--json]` - Read-only hardware/backend report
-- `sinter validate <profile> [--json]` - Validate profile without loading weights
-- `sinter plan <profile> [--json]` - Explain requested vs effective settings
-- `sinter up <profile> [--timeout N] [--foreground]` - Start llama-server
-- `sinter down [--timeout N]` - Stop the running llama-server
-- `sinter status [--json]` - Show current instance status
+- `cupola doctor [--json]` - Read-only hardware/backend report
+- `cupola validate <profile> [--json]` - Validate profile without loading weights
+- `cupola plan <profile> [--json]` - Explain requested vs effective settings
+- `cupola up <profile> [--timeout N] [--foreground]` - Start llama-server
+- `cupola down [--timeout N]` - Stop the running llama-server
+- `cupola status [--json]` - Show current instance status
 
 ## Profiles
 
-Defined in `~/.config/sinter/sinter.toml` or `profiles/*.toml`.
+Defined in `~/.config/cupola/cupola.toml` or `profiles/*.toml`.
 
 ```toml
 [profiles.coding]
@@ -36,18 +36,18 @@ port = 8080
 
 ## Logs
 
-- Operational: `~/.local/state/sinter/logs/` (JSON lines)
-- Backend: `~/.local/state/sinter/logs/backend-<profile>.log`
+- Operational: `~/.local/state/cupola/logs/` (JSON lines)
+- Backend: `~/.local/state/cupola/logs/backend-<profile>.log`
 
 ## State Files
 
-- `~/.local/state/sinter/instance.json` - Current instance
-- `~/.local/state/sinter/state.json` - Supervisor state
-- `/run/user/$UID/sinter/lock` - Supervisor lock
+- `~/.local/state/cupola/instance.json` - Current instance
+- `~/.local/state/cupola/state.json` - Supervisor state
+- `/run/user/$UID/cupola/lock` - Supervisor lock
 
 ## Troubleshooting
 
 - Port in use: `ss -tlnp | grep :8080`
-- VRAM insufficient: `sinter plan <profile>`
+- VRAM insufficient: `cupola plan <profile>`
 - Backend not starting: check `backend-<profile>.log`
 - Permission denied: ensure `rocm` group membership

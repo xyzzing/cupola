@@ -1,11 +1,11 @@
-"""Tests for SINTER file lock."""
+"""Tests for CUPOLA file lock."""
 
 from __future__ import annotations
 
 import tempfile
 from pathlib import Path
 
-from sinter.lock import acquire_lock
+from cupola.lock import acquire_lock
 
 
 def test_lock_acquire_and_release():
@@ -13,7 +13,7 @@ def test_lock_acquire_and_release():
     with tempfile.TemporaryDirectory() as tmpdir:
         with acquire_lock(Path(tmpdir)) as lock_path:
             assert lock_path.exists()
-            assert lock_path.name == "sinter.lock"
+            assert lock_path.name == "cupola.lock"
         # After release, lock is gone
         assert not lock_path.exists()
 

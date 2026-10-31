@@ -1,4 +1,4 @@
-"""Tests for SINTER configuration loading and validation."""
+"""Tests for CUPOLA configuration loading and validation."""
 
 from __future__ import annotations
 
@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from sinter.config import ProfileSpec, SinterConfig, load_config, validate_profile
+from cupola.config import CupolaConfig, ProfileSpec, load_config, validate_profile
 
 
 def test_default_config():
-    config = SinterConfig()
+    config = CupolaConfig()
     assert config.profiles == {}
     assert config.default_profile == "coding"
 

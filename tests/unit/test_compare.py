@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from sinter.cli import main
-from sinter.compare import (
+from cupola.cli import main
+from cupola.compare import (
     MAX_INTERACTION_LANES,
     VERDICT_FAIL,
     VERDICT_INSUFFICIENT,

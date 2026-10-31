@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest a new feature for Sinter
+about: Suggest a new feature for Cupola
 title: "[FEATURE] "
 labels: [enhancement]
 ---
