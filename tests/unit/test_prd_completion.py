@@ -12,8 +12,8 @@ import pytest
 
 def test_instance_uuid_verification():
     """Instance UUID must be verified during stop/status operations."""
-    from sinter.logging import OperationalLogger
-    from sinter.supervisor import InstanceRecord, Supervisor
+    from cupola.logging import OperationalLogger
+    from cupola.supervisor import InstanceRecord, Supervisor
 
     with tempfile.TemporaryDirectory() as tmpdir:
         state_dir = Path(tmpdir) / "state"
@@ -37,7 +37,7 @@ def test_instance_uuid_verification():
 
 def test_sha256_validation_passes():
     """Weights SHA256 validation should pass for correct hash."""
-    from sinter.config import ProfileSpec, compute_sha256, validate_profile
+    from cupola.config import ProfileSpec, compute_sha256, validate_profile
 
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create test weights file
@@ -61,7 +61,7 @@ def test_sha256_validation_passes():
 
 def test_sha256_validation_fails():
     """Weights SHA256 validation should fail for wrong hash."""
-    from sinter.config import ProfileSpec, validate_profile
+    from cupola.config import ProfileSpec, validate_profile
 
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create test weights file
@@ -81,9 +81,9 @@ def test_sha256_validation_fails():
 
 def test_degraded_blocks_new_launch():
     """DEGRADED state must block new launches."""
-    from sinter.config import ProfileSpec
-    from sinter.logging import OperationalLogger
-    from sinter.supervisor import InstanceRecord, Supervisor
+    from cupola.config import ProfileSpec
+    from cupola.logging import OperationalLogger
+    from cupola.supervisor import InstanceRecord, Supervisor
 
     with tempfile.TemporaryDirectory() as tmpdir:
         state_dir = Path(tmpdir) / "state"
@@ -111,9 +111,9 @@ def test_degraded_blocks_new_launch():
 
 def test_uuid_in_environment():
     """Instance UUID must be passed to spawned process via environment."""
-    from sinter.config import ProfileSpec
-    from sinter.logging import OperationalLogger
-    from sinter.supervisor import Supervisor
+    from cupola.config import ProfileSpec
+    from cupola.logging import OperationalLogger
+    from cupola.supervisor import Supervisor
 
     with tempfile.TemporaryDirectory() as tmpdir:
         state_dir = Path(tmpdir) / "state"
@@ -159,24 +159,24 @@ def test_uuid_in_environment():
             def __exit__(self, *exc):
                 return False
 
-        with patch("sinter.config.validate_profile", return_value=[]), \
+        with patch("cupola.config.validate_profile", return_value=[]), \
                 patch("subprocess.Popen", mock_popen), \
                 patch("urllib.request.urlopen",
                       return_value=_ReadyResponse()), \
-                patch("sinter.supervisor.Supervisor._read_proc_stat",
+                patch("cupola.supervisor.Supervisor._read_proc_stat",
                       return_value=1000), \
-                patch("sinter.supervisor.Supervisor._start_sentinel"):
+                patch("cupola.supervisor.Supervisor._start_sentinel"):
             result = sup.launch(profile, timeout=5.0)
 
         assert result.state == "READY", getattr(result, "last_error", "")
-        assert "__SINTER_INSTANCE" in captured_env
+        assert "__CUPOLA_INSTANCE" in captured_env
         # UUID should be 36 chars
-        assert len(captured_env["__SINTER_INSTANCE"]) == 36
+        assert len(captured_env["__CUPOLA_INSTANCE"]) == 36
 
 
 def test_compute_sha256_large_file():
     """SHA256 computation should handle large files with chunked reads."""
-    from sinter.config import compute_sha256
+    from cupola.config import compute_sha256
 
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create a file larger than one chunk (64 MiB) — use smaller for test
@@ -200,7 +200,7 @@ def test_compute_sha256_large_file():
 
 def test_deterministic_plan_compilation():
     """PRD v2 Criterion 1: Same input produces identical DAG structure."""
-    from sinter.plan import compile_plan
+    from cupola.plan import compile_plan
 
     plan_data = {
         "plan_version": "1.0.0",
@@ -225,8 +225,8 @@ def test_deterministic_plan_compilation():
 
 def test_context_ceiling_enforcement():
     """PRD v2 Criterion 2: Context never exceeds 16,384 tokens."""
-    from sinter.context import package_for_planning
-    from sinter.manifest import build_manifest
+    from cupola.context import package_for_planning
+    from cupola.manifest import build_manifest
 
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create a large document
@@ -245,14 +245,14 @@ def test_standard_library_compliance():
     import inspect
 
     new_modules = [
-        "sinter.sandbox",
-        "sinter.telemetry",
-        "sinter.documents",
-        "sinter.manifest",
-        "sinter.context",
-        "sinter.minder",
-        "sinter.plan",
-        "sinter.checkpoints",
+        "cupola.sandbox",
+        "cupola.telemetry",
+        "cupola.documents",
+        "cupola.manifest",
+        "cupola.context",
+        "cupola.minder",
+        "cupola.plan",
+        "cupola.checkpoints",
     ]
 
     for module_name in new_modules:
@@ -270,7 +270,7 @@ def test_standard_library_compliance():
 
 def test_sandbox_resource_limits():
     """PRD v2: Sandbox enforces RLIMIT_AS and RLIMIT_CPU."""
-    from sinter.sandbox import run_sandboxed
+    from cupola.sandbox import run_sandboxed
 
     # Test memory limit
     result = run_sandboxed(
@@ -284,7 +284,7 @@ def test_sandbox_resource_limits():
 
 def test_telemetry_atomic_write():
     """PRD v2: Telemetry writes are atomic (no partial reads)."""
-    from sinter.telemetry import update_state_atomic
+    from cupola.telemetry import update_state_atomic
 
     with tempfile.TemporaryDirectory() as tmpdir:
         target = Path(tmpdir) / "instance.json"

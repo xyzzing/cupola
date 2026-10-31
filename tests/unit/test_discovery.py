@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from sinter.discovery import (
+from cupola.discovery import (
     find_llama_bench,
     find_llama_cpp_source,
     find_llama_server,
@@ -38,32 +38,32 @@ def test_env_override_wins_over_path():
         binary.touch()
         binary.chmod(0o755)
 
-        os.environ["SINTER_LLAMA_SERVER"] = str(binary)
+        os.environ["CUPOLA_LLAMA_SERVER"] = str(binary)
         try:
             result = find_llama_server()
             assert result == binary
         finally:
-            del os.environ["SINTER_LLAMA_SERVER"]
+            del os.environ["CUPOLA_LLAMA_SERVER"]
 
 
 def test_env_invalid_path_fails():
     """Invalid environment path should raise an error."""
-    os.environ["SINTER_LLAMA_SERVER"] = "/nonexistent/path"
+    os.environ["CUPOLA_LLAMA_SERVER"] = "/nonexistent/path"
     try:
         with pytest.raises(ValueError):
             find_llama_server()
     finally:
-        del os.environ["SINTER_LLAMA_SERVER"]
+        del os.environ["CUPOLA_LLAMA_SERVER"]
 
 
 def test_env_not_absolute_fails():
     """Environment path must be absolute."""
-    os.environ["SINTER_LLAMA_SERVER"] = "relative/path"
+    os.environ["CUPOLA_LLAMA_SERVER"] = "relative/path"
     try:
         with pytest.raises(ValueError):
             find_llama_server()
     finally:
-        del os.environ["SINTER_LLAMA_SERVER"]
+        del os.environ["CUPOLA_LLAMA_SERVER"]
 
 
 def test_path_discovery():
@@ -92,8 +92,8 @@ def test_nothing_found_returns_none():
     with unittest.mock.patch("shutil.which", return_value=None):
         # Clear env vars
         old_vars = {}
-        for var in ["SINTER_LLAMA_SERVER", "SINTER_LLAMA_BENCH",  # noqa: E501
-                     "SINTER_LLAMA_CPP_SOURCE", "SINTER_WEIGHTS"]:
+        for var in ["CUPOLA_LLAMA_SERVER", "CUPOLA_LLAMA_BENCH",  # noqa: E501
+                     "CUPOLA_LLAMA_CPP_SOURCE", "CUPOLA_WEIGHTS"]:
             if var in os.environ:
                 old_vars[var] = os.environ[var]
                 del os.environ[var]
@@ -120,7 +120,7 @@ def test_private_paths_not_in_discovery():
     """Discovery should not contain private paths."""
     import inspect
 
-    import sinter.discovery as discovery
+    import cupola.discovery as discovery
 
     # Assembled rather than written out, so this test is not itself a hit for
     # the portability scan.

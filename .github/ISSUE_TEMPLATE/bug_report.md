@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug in Sinter
+about: Report a bug in Cupola
 title: "[BUG] "
 labels: [bug]
 ---
@@ -25,7 +25,7 @@ What actually happened.
 
 ## System Information
 
-- Sinter version: 
+- Cupola version: 
 - Python version: 
 - ROCm version: 
 - GPU model: 

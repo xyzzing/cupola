@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from sinter.lanes import (
+from cupola.lanes import (
     DECLARED_ACTIVE,
     DECLARED_DISABLED,
     KIND_BUNDLE,
@@ -43,7 +43,7 @@ from sinter.lanes import (
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "lanes"
 WEB_TREE = FIXTURES / "composed-web.yml"
 
-PROFILE = "sintertest"
+PROFILE = "cupolatest"
 
 
 # --- helpers --------------------------------------------------------------
@@ -151,7 +151,7 @@ def test_lanes_from_dump_selects_only_real_knobs():
 
 
 def _dump_lanes(text: str, profile_dir: Path = Path("/TMP-DSH/profiles/web")):
-    from sinter.lanes import _lanes_from_dump
+    from cupola.lanes import _lanes_from_dump
     return _lanes_from_dump(text, "web", profile_dir.parent.parent)
 
 
@@ -277,7 +277,7 @@ def test_snapshot_roundtrip_and_ledger(tmp_path):
     state = tmp_path / "state"
     snapshot = tmp_path / "snap.json"
     snapshot.write_text(json.dumps(lane_set.to_dict()))
-    from sinter.lanes import read_snapshot
+    from cupola.lanes import read_snapshot
     assert read_snapshot(snapshot)["lane_set_hash"] == lane_set.lane_set_hash()
 
     append_ledger({"run_id": "r1", "lane_set_hash": lane_set.lane_set_hash()},
@@ -290,7 +290,7 @@ def test_snapshot_roundtrip_and_ledger(tmp_path):
 def test_read_snapshot_rejects_garbage(tmp_path):
     bad = tmp_path / "bad.json"
     bad.write_text("{not json")
-    from sinter.lanes import read_snapshot
+    from cupola.lanes import read_snapshot
     with pytest.raises(LaneError):
         read_snapshot(bad)
 

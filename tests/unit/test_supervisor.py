@@ -1,11 +1,11 @@
-"""Tests for SINTER supervisor."""
+"""Tests for CUPOLA supervisor."""
 
 from __future__ import annotations
 
 import tempfile
 from pathlib import Path
 
-from sinter.supervisor import InstanceRecord, Supervisor
+from cupola.supervisor import InstanceRecord, Supervisor
 
 
 def test_instance_record_serialization():

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from sinter.checkpoints import (
+from cupola.checkpoints import (
     CHECKPOINT_REF_PREFIX,
     create_checkpoint,
     create_plan_baseline,

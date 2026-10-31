@@ -5,13 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from sinter.context import (
+from cupola.context import (
     PackagedContext,
     build_planning_prompt,
     package_for_planning,
     package_section_for_task,
 )
-from sinter.manifest import build_manifest
+from cupola.manifest import build_manifest
 
 
 def test_package_for_planning_basic():

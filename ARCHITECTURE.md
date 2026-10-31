@@ -2,7 +2,7 @@
 
 ## 1. System Topology
 
-Sinter is architected as an out-of-band supervisor rather than an in-path proxy [cite: 3]. Clients connect directly to the underlying `llama-server` on loopback [cite: 3].
+Cupola is architected as an out-of-band supervisor rather than an in-path proxy [cite: 3]. Clients connect directly to the underlying `llama-server` on loopback [cite: 3].
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -17,7 +17,7 @@ Sinter is architected as an out-of-band supervisor rather than an in-path proxy 
 └───────────────────────────▲────────────────────────────┘
                             │ Process Supervision / Signals / /health
 ┌───────────────────────────┴────────────────────────────┐
-│                    sinter (CLI Core)                   │
+│                    cupola (CLI Core)                   │
 │                                                        │
 │  ┌────────────────────────┐   ┌─────────────────────┐  │
 │  │     Crucible (FSM)     │   │     Anvil (GGUF)    │  │
@@ -70,7 +70,7 @@ schema_version = "1.0"
 alias = "qwen2.5-coder-32b"
 
 [model]
-path = "/var/lib/sinter/models/qwen2.5-coder-32b-instruct-q4_k_m.gguf"
+path = "/var/lib/cupola/models/qwen2.5-coder-32b-instruct-q4_k_m.gguf"
 sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 context_length = 32768
 ngl = 99
@@ -88,14 +88,14 @@ allowed_routes = ["/v1/chat/completions", "/health"]
 
 ## 3. Directory Layout (XDG Standard Compliance)
 
-Sinter adheres strictly to the XDG Base Directory specification [cite: 3]:
+Cupola adheres strictly to the XDG Base Directory specification [cite: 3]:
 
 | Purpose | Environment Variable | Default Location |
 | :--- | :--- | :--- |
-| **Configuration** | `$XDG_CONFIG_HOME` | `~/.config/sinter/profiles/*.toml` [cite: 3] |
-| **Runtime & Sockets** | `$XDG_RUNTIME_DIR` | `/run/user/$UID/sinter/sinter.lock`, `state.json` [cite: 3] |
-| **State & Logs** | `$XDG_STATE_HOME` | `~/.local/state/sinter/logs/` [cite: 3] |
-| **Model Weights** | User-defined / `$XDG_DATA_HOME` | `~/.local/share/sinter/models/` [cite: 3] |
+| **Configuration** | `$XDG_CONFIG_HOME` | `~/.config/cupola/profiles/*.toml` [cite: 3] |
+| **Runtime & Sockets** | `$XDG_RUNTIME_DIR` | `/run/user/$UID/cupola/cupola.lock`, `state.json` [cite: 3] |
+| **State & Logs** | `$XDG_STATE_HOME` | `~/.local/state/cupola/logs/` [cite: 3] |
+| **Model Weights** | User-defined / `$XDG_DATA_HOME` | `~/.local/share/cupola/models/` [cite: 3] |
 
 ---
 

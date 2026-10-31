@@ -13,23 +13,23 @@ from pathlib import Path
 
 import pytest
 
-from sinter.config import ProfileSpec
-from sinter.logging import OperationalLogger
-from sinter.supervisor import Supervisor
+from cupola.config import ProfileSpec
+from cupola.logging import OperationalLogger
+from cupola.supervisor import Supervisor
 
 
 @pytest.mark.real_hardware
 @pytest.mark.skipif(
-    not os.environ.get("SINTER_RUN_REAL_HARDWARE_TESTS"),
-    reason="Real hardware tests not requested (set SINTER_RUN_REAL_HARDWARE_TESTS=1)",
+    not os.environ.get("CUPOLA_RUN_REAL_HARDWARE_TESTS"),
+    reason="Real hardware tests not requested (set CUPOLA_RUN_REAL_HARDWARE_TESTS=1)",
 )
 @pytest.mark.skipif(
-    not os.environ.get("SINTER_LLAMA_SERVER"),
-    reason="SINTER_LLAMA_SERVER not set",
+    not os.environ.get("CUPOLA_LLAMA_SERVER"),
+    reason="CUPOLA_LLAMA_SERVER not set",
 )
 @pytest.mark.skipif(
-    not os.environ.get("SINTER_WEIGHTS"),
-    reason="SINTER_WEIGHTS not set",
+    not os.environ.get("CUPOLA_WEIGHTS"),
+    reason="CUPOLA_WEIGHTS not set",
 )
 def test_full_client_journey():
     """Complete acceptance journey: up → status → down → status."""
@@ -45,8 +45,8 @@ def test_full_client_journey():
         # Step 2: Launch
         profile = ProfileSpec(
             alias="test",
-            weights_path=Path(os.environ["SINTER_WEIGHTS"]),
-            backend_binary=Path(os.environ["SINTER_LLAMA_SERVER"]),
+            weights_path=Path(os.environ["CUPOLA_WEIGHTS"]),
+            backend_binary=Path(os.environ["CUPOLA_LLAMA_SERVER"]),
             device="ROCm0",
             n_gpu_layers=63,
             ctx_size=131072,
@@ -105,7 +105,7 @@ def test_logging_captures_events():
         assert instance.state == "FAILED"
 
         # Verify log file exists and contains events
-        log_path = state / "logs" / "sinter.log"
+        log_path = state / "logs" / "cupola.log"
         assert log_path.exists()
 
         with open(log_path) as f:

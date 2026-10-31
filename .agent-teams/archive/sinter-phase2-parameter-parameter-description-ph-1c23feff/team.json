@@ -1,6 +1,6 @@
 {
-  "name": "sinter-phase2</parameter>\n<parameter=description>\nPhase 2 of Sinter: agent handover, overnight execution, and PRD-compliant build. Analyzes existing docs, plans remaining work, and implements it.</parameter>\n<parameter=approval>\nrequired",
-  "id": "sinter-phase2-parameter-parameter-description-ph-1c23feff",
+  "name": "cupola-phase2</parameter>\n<parameter=description>\nPhase 2 of Cupola: agent handover, overnight execution, and PRD-compliant build. Analyzes existing docs, plans remaining work, and implements it.</parameter>\n<parameter=approval>\nrequired",
+  "id": "cupola-phase2-parameter-parameter-description-ph-1c23feff",
   "captainSessionId": "session-544eacb3-da0e-41da-aa8c-48b17733743a",
   "createdAt": 1789634579341,
   "members": [

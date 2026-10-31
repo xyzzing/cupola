@@ -1,4 +1,4 @@
-# SINTER — Handover Document
+# CUPOLA — Handover Document
 
 **Date:** 2026-09-16
 **Completed:** T00 (capability report), T01 (raw backend spike), T02 (minimal package, config schema, atomic state, plan/doctor interfaces), T03 (ownership, lock, state machine, launch/readiness/stop), T04 (bounded GGUF validation and memory/profile qualification), T05 (private operational logging and acceptance tests)
@@ -23,8 +23,8 @@
 - API is OpenAI-compatible
 
 ### T02 — Minimal Package & Interfaces
-- Created Python package structure (`src/sinter/`)
-- Configuration schema (TOML) with ProfileSpec and SinterConfig dataclasses
+- Created Python package structure (`src/cupola/`)
+- Configuration schema (TOML) with ProfileSpec and CupolaConfig dataclasses
 - Atomic state management (write-temp-then-rename)
 - CLI: `doctor`, `validate`, `plan`, `up`, `down`, `status` (all support `--json`)
 - Hardware probing (kernel, CPU, RAM, GPU, VRAM, ROCm, llama-server)
@@ -32,34 +32,34 @@
 
 ### T03 — Ownership, Lock, State Machine, Lifecycle
 - Process ownership via (PID, start_time, instance_uuid) tuple
-- Exclusive file lock via O_CREAT|O_EXCL on $XDG_RUNTIME_DIR/sinter/sinter.lock
+- Exclusive file lock via O_CREAT|O_EXCL on $XDG_RUNTIME_DIR/cupola/cupola.lock
 - Finite state machine: STOPPED→VALIDATING→STARTING→READY→STOPPED/FAILED/DEGRADED
 - Supervisor (Crucible) with launch/readiness polling/SIGTERM→SIGKILL/DEGRADED escalation
 - XDG Base Directory spec compliance
 
 ### T04 — Bounded GGUF Validation & Memory Admission
-- Bounded GGUF header parser (`src/sinter/gguf.py`) — never loads tensor data
+- Bounded GGUF header parser (`src/cupola/gguf.py`) — never loads tensor data
 - VRAM telemetry via sysfs (`/sys/class/drm/card*/device/mem_info_vram_*`)
 - KV cache estimation from actual model architecture parameters
 - Memory admission formula: `weights + KV + compute + reserve ≤ available_VRAM`
-- `sinter plan` now shows GGUF metadata and admission decision
+- `cupola plan` now shows GGUF metadata and admission decision
 - Profile config with correct backend path
 
 ### T05 — Private Operational Logging & Acceptance Tests
-- `src/sinter/logging.py`: OperationalLogger — JSON lines, 600 perms, operational events only
+- `src/cupola/logging.py`: OperationalLogger — JSON lines, 600 perms, operational events only
 - Supervisor integrated with logging (launch_start, launch_ready, launch_failed_validation, stop_starting, stop_sigterm, stop_completed, etc.)
 - `tests/integration/test_acceptance.py`: full client journey test + logging verification
-- `sinter plan` uses llama-server API for model info when server is running
+- `cupola plan` uses llama-server API for model info when server is running
 - 43 tests passing, ruff clean, agentic verification passing
 
 ## 2. Current State
 
 ### Package Structure
 ```
-src/sinter/
+src/cupola/
 ├── __init__.py
 ├── cli.py            # CLI entry point
-├── config.py         # ProfileSpec, SinterConfig, TOML loading
+├── config.py         # ProfileSpec, CupolaConfig, TOML loading
 ├── hardware.py       # Hardware probing
 ├── state.py          # Atomic state management
 ├── lock.py           # Exclusive file lock
@@ -118,10 +118,10 @@ python3 .agentic/verify.py
 python3 -m ruff check src/ tests/
 
 # CLI commands
-python3 -m sinter.cli doctor --json
-python3 -m sinter.cli validate coding
-python3 -m sinter.cli plan coding
-python3 -m sinter.cli status
+python3 -m cupola.cli doctor --json
+python3 -m cupola.cli validate coding
+python3 -m cupola.cli plan coding
+python3 -m cupola.cli status
 ```
 
 ## 5. Key Environment Facts

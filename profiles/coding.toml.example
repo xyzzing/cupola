@@ -1,6 +1,6 @@
-# SINTER profile: coding (example)
-# Copy this to ~/.config/sinter/profiles/coding.toml and set real paths.
-# Or use `sinter setup` to generate it automatically.
+# CUPOLA profile: coding (example)
+# Copy this to ~/.config/cupola/profiles/coding.toml and set real paths.
+# Or use `cupola setup` to generate it automatically.
 
 [profiles.coding]
 alias = "coding"

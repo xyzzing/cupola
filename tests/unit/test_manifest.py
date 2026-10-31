@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from sinter.manifest import (
+from cupola.manifest import (
     build_manifest,
     get_high_priority_sections,
     get_section_by_anchor,

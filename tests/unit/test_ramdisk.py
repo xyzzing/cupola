@@ -3,7 +3,7 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from sinter.ramdisk import (
+from cupola.ramdisk import (
     RamdiskInfo,
     format_ramdisk_info,
     list_models_on_ramdisk,

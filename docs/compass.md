@@ -16,7 +16,7 @@ benchmarks/
   systems.json                 what was measured
   <suite>/manifest.json        suite + per-task contracts
   <suite>/tasks/<id>/          kickoff.md, fixtures, corpus, graders
-src/sinter/
+src/cupola/
   lanes.py      toolchain inventory, snapshots, diff, activation gates
   suites.py     manifest schema, validation, fingerprint, dry-run plan
   systems.py    named systems under test, with path anchoring
@@ -105,10 +105,10 @@ Two different numbers, deliberately kept apart:
 ## Operator notes
 
 - Long runs are operator-initiated; nothing here runs automatically.
-- `SINTER_BENCH_STATE` relocates run state (default
-  `~/.local/state/sinter/bench`).
-- `SINTER_SYSTEMS_FILE` relocates `systems.json`.
-- `SINTER_LANE_PROFILE` chooses which profile's lanes a run records when the
+- `CUPOLA_BENCH_STATE` relocates run state (default
+  `~/.local/state/cupola/bench`).
+- `CUPOLA_SYSTEMS_FILE` relocates `systems.json`.
+- `CUPOLA_LANE_PROFILE` chooses which profile's lanes a run records when the
   system declares none (default `web`).
 - Bundles that fail to resolve, and patch layers targeting entries that no
   longer exist, are reported as lane warnings rather than being ignored.

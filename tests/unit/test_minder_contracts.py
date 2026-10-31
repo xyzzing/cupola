@@ -1,4 +1,4 @@
-"""Minder/sinter boundary contract tests (minder-memory plan PR 8).
+"""Minder/cupola boundary contract tests (minder-memory plan PR 8).
 
 Contract-only: these pin the typed objects without any GPU behaviour
 change — no LoRA loading, no llama-server flag changes.
@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from dataclasses import fields
 
-from sinter.contracts import InferenceGrant, InferenceIntent, RuntimeSnapshot, evaluate_intent
-from sinter.telemetry import TelemetryState
+from cupola.contracts import InferenceGrant, InferenceIntent, RuntimeSnapshot, evaluate_intent
+from cupola.telemetry import TelemetryState
 
 
 def test_snapshot_defaults_safe_when_sensors_missing():

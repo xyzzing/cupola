@@ -13,18 +13,18 @@ from pathlib import Path
 
 import pytest
 
-from sinter.cli import main
-from sinter.graders import GradeResult
-from sinter.lanes import Lane, LaneSet
-from sinter.report import (
+from cupola.cli import main
+from cupola.graders import GradeResult
+from cupola.lanes import Lane, LaneSet
+from cupola.report import (
     build_report,
     derive_metrics,
     format_report,
     read_report,
     validate_report,
 )
-from sinter.runner import TaskOutcome
-from sinter.suites import load_suite
+from cupola.runner import TaskOutcome
+from cupola.suites import load_suite
 
 BENCH_ROOT = Path(__file__).resolve().parents[2] / "benchmarks"
 STUB = Path(__file__).resolve().parents[1] / "fixtures" / "stub_agent.py"
@@ -141,7 +141,7 @@ def test_report_flags_lane_warnings_as_not_reproducible():
 
 
 def test_report_records_declared_systems_even_without_runs():
-    from sinter.harness import System
+    from cupola.harness import System
     system = System(name="local-ponytail-on", command=["dsh", "{prompt}"])
     report = build_report(load_suite(SUITE, BENCH_ROOT), [], None,
                           systems=[system])
@@ -225,9 +225,9 @@ def test_format_report_states_numbers_and_caveats():
 def bench_env(tmp_path, monkeypatch):
     """Point all bench state at a temp dir and export the stub's sessions."""
     state = tmp_path / "state"
-    monkeypatch.setenv("SINTER_BENCH_STATE", str(state))
-    monkeypatch.setenv("SINTER_DSH_SESSIONS", str(state / "sessions"))
-    monkeypatch.setenv("SINTER_SYSTEMS_FILE",
+    monkeypatch.setenv("CUPOLA_BENCH_STATE", str(state))
+    monkeypatch.setenv("CUPOLA_DSH_SESSIONS", str(state / "sessions"))
+    monkeypatch.setenv("CUPOLA_SYSTEMS_FILE",
                        str(BENCH_ROOT / "systems.json"))
     return state
 
@@ -294,7 +294,7 @@ def test_cli_execute_refuses_an_unreachable_endpoint(bench_env, capsys,
          "base_url": "http://127.0.0.1:9/v1"}]}))
     bench_env.mkdir(parents=True, exist_ok=True)
     import os
-    os.environ["SINTER_SYSTEMS_FILE"] = str(systems)
+    os.environ["CUPOLA_SYSTEMS_FILE"] = str(systems)
     rc = main(["bench", "suite", "run", "--suite", SUITE,
                "--system", "dead", "--execute"])
     assert rc == 1
@@ -312,14 +312,14 @@ def test_cli_execute_json_reports_the_whole_run(bench_env, capsys):
 
 def test_systems_file_is_anchored_for_spawning():
     """A relative script path must not be resolved against the task workspace."""
-    from sinter.systems import find_system
+    from cupola.systems import find_system
     system = find_system("stub-agent", BENCH_ROOT)
     assert Path(system.command[1]).is_absolute()
     assert Path(system.command[1]).is_file()
 
 
 def test_default_systems_are_valid():
-    from sinter.systems import load_systems
+    from cupola.systems import load_systems
     systems = load_systems(BENCH_ROOT)
     assert systems, "systems.json must declare at least one system"
     for system in systems:

@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from sinter.transcript import (
+from cupola.transcript import (
     TranscriptError,
     find_session_logs,
     newest_session_log,

@@ -9,24 +9,24 @@ import tempfile
 import threading
 from pathlib import Path
 
-from sinter.config import ProfileSpec, validate_profile
-from sinter.gguf import read_gguf_header
-from sinter.logging import OperationalLogger
-from sinter.memory import estimate_kv_bytes
+from cupola.config import ProfileSpec, validate_profile
+from cupola.gguf import read_gguf_header
+from cupola.logging import OperationalLogger
+from cupola.memory import estimate_kv_bytes
 
 
 def test_supervisor_signal_permission_error():
     """PID wrap/reuse should be detected via PermissionError."""
     from unittest.mock import patch
 
-    from sinter.supervisor import Supervisor
+    from cupola.supervisor import Supervisor
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        log = OperationalLogger(Path(tmpdir) / "sinter.log")
+        log = OperationalLogger(Path(tmpdir) / "cupola.log")
         try:
             sup = Supervisor(Path(tmpdir), log)
             # Mock os.kill to raise PermissionError (simulates PID reuse)
-            with patch("sinter.supervisor.os.kill", side_effect=PermissionError()):
+            with patch("cupola.supervisor.os.kill", side_effect=PermissionError()):
                 result = sup._send_signal(12345, 15)
                 assert result is False, "Signal should fail with PermissionError"
         finally:
@@ -35,10 +35,10 @@ def test_supervisor_signal_permission_error():
 
 def test_supervisor_start_time_none():
     """Instance with start_time=None should be treated as dead."""
-    from sinter.supervisor import InstanceRecord, Supervisor
+    from cupola.supervisor import InstanceRecord, Supervisor
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        log = OperationalLogger(Path(tmpdir) / "sinter.log")
+        log = OperationalLogger(Path(tmpdir) / "cupola.log")
         try:
             sup = Supervisor(Path(tmpdir), log)
             instance = InstanceRecord(
@@ -72,7 +72,7 @@ def test_memory_head_dim_validation():
     info = MockGGUFInfo()
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        log = OperationalLogger(Path(tmpdir) / "sinter.log")
+        log = OperationalLogger(Path(tmpdir) / "cupola.log")
         try:
             # Should not crash, just warn
             kv_bytes = estimate_kv_bytes(info, 100, "f16", log)
@@ -145,7 +145,7 @@ def test_config_host_valid_loopback():
 
 def test_state_symlink_validation():
     """State file should not be a symlink."""
-    from sinter.state import load_state
+    from cupola.state import load_state
 
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create a real file
@@ -189,7 +189,7 @@ def test_logging_thread_safety():
         assert not errors, f"Logging errors: {errors}"
 
         # Verify all 10 events were written
-        log_path = log_dir / "sinter.log"
+        log_path = log_dir / "cupola.log"
         with open(log_path, "r") as f:
             lines = f.readlines()
         assert len(lines) == 10, f"Expected 10 log lines, got {len(lines)}"

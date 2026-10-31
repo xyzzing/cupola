@@ -2,7 +2,7 @@
 
 ## Reporting Vulnerabilities
 
-To report a security vulnerability, please email the maintainers at security@sinter-project.org or open an issue with the `[security]` label.
+To report a security vulnerability, please email the maintainers at security@cupola-project.org or open an issue with the `[security]` label.
 
 Please include:
 - Description of the vulnerability
@@ -22,7 +22,7 @@ We aim to acknowledge security reports within 48 hours and provide a fix within 
 
 ## Security Considerations
 
-Sinter follows these security principles:
+Cupola follows these security principles:
 - Loopback-only binding by default
 - No in-path execution of agent tools
 - Bounded metadata reading with validation

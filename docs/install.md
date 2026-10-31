@@ -1,4 +1,4 @@
-# Sinter Installation Guide
+# Cupola Installation Guide
 
 ## Prerequisites
 
@@ -11,8 +11,8 @@
 ## From Source
 
 ```bash
-git clone https://github.com/zac-ch/sinter.git
-cd sinter
+git clone https://github.com/zac-ch/cupola.git
+cd cupola
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
 ```
@@ -20,22 +20,22 @@ pip install -e .
 ## Verify
 
 ```bash
-sinter --version
-sinter doctor
+cupola --version
+cupola doctor
 ```
 
 ## XDG Directories
 
 | Directory | Purpose | Default |
 |-----------|---------|---------|
-| `XDG_CONFIG_HOME/sinter` | Configuration | `~/.config/sinter` |
-| `XDG_STATE_HOME/sinter` | State, logs | `~/.local/state/sinter` |
-| `XDG_RUNTIME_DIR/sinter` | Lock, PID | `/run/user/$UID/sinter` |
+| `XDG_CONFIG_HOME/cupola` | Configuration | `~/.config/cupola` |
+| `XDG_STATE_HOME/cupola` | State, logs | `~/.local/state/cupola` |
+| `XDG_RUNTIME_DIR/cupola` | Lock, PID | `/run/user/$UID/cupola` |
 
 ## Uninstall
 
 ```bash
 rm -rf .venv
-pip uninstall sinter  # if system-wide
-rm -rf ~/.config/sinter ~/.local/state/sinter  # optional
+pip uninstall cupola  # if system-wide
+rm -rf ~/.config/cupola ~/.local/state/cupola  # optional
 ```

@@ -1,10 +1,10 @@
-"""Tests for SINTER memory admission."""
+"""Tests for CUPOLA memory admission."""
 
 from __future__ import annotations
 
-from sinter.config import ProfileSpec
-from sinter.gguf import GGUFInfo
-from sinter.memory import check_admission, estimate_kv_bytes, read_vram_free
+from cupola.config import ProfileSpec
+from cupola.gguf import GGUFInfo
+from cupola.memory import check_admission, estimate_kv_bytes, read_vram_free
 
 
 def test_estimate_kv_bytes():

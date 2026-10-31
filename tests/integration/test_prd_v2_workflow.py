@@ -10,18 +10,18 @@ from pathlib import Path
 
 import pytest
 
-from sinter.checkpoints import (
+from cupola.checkpoints import (
     create_checkpoint,
     create_plan_baseline,
     create_task_checkpoint,
     list_checkpoints,
 )
-from sinter.context import package_for_planning
-from sinter.manifest import build_manifest
-from sinter.minder import TaskType, ThinkingMode, evaluate_policy
-from sinter.plan import compile_plan, write_plan
-from sinter.sandbox import run_sandboxed
-from sinter.telemetry import TelemetryState
+from cupola.context import package_for_planning
+from cupola.manifest import build_manifest
+from cupola.minder import TaskType, ThinkingMode, evaluate_policy
+from cupola.plan import compile_plan, write_plan
+from cupola.sandbox import run_sandboxed
+from cupola.telemetry import TelemetryState
 
 
 def _init_git_repo(path: Path) -> None:

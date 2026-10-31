@@ -44,7 +44,7 @@ htmlcov/
 *.egg
 dist/
 build/
-sinter.egg-info/
+cupola.egg-info/
 
 # Local development
 .dsh/

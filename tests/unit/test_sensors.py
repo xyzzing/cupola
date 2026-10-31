@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-from sinter.sensors import SensorReading, probe_sensors
+from cupola.sensors import SensorReading, probe_sensors
 
 
 def _write_file(path: Path, content: str) -> None:
@@ -85,7 +85,7 @@ class TestSensorProbe:
     def test_full_sensors_ok(self, tmp_path):
         """Test complete sensor tree returns quality='ok'."""
         sysfs = _create_full_hwmon_tree(tmp_path)
-        os.environ["SINTER_SYSFS_ROOT"] = str(sysfs)
+        os.environ["CUPOLA_SYSFS_ROOT"] = str(sysfs)
 
         try:
             reading = probe_sensors()
@@ -103,12 +103,12 @@ class TestSensorProbe:
             assert reading.gtt_used_bytes == 1073741824
             assert "power" not in reading.missing
         finally:
-            del os.environ["SINTER_SYSFS_ROOT"]
+            del os.environ["CUPOLA_SYSFS_ROOT"]
 
     def test_missing_power_degraded(self, tmp_path):
         """Test missing power sensor returns quality='degraded'."""
         sysfs = _create_partial_hwmon_tree(tmp_path)
-        os.environ["SINTER_SYSFS_ROOT"] = str(sysfs)
+        os.environ["CUPOLA_SYSFS_ROOT"] = str(sysfs)
 
         try:
             reading = probe_sensors()
@@ -118,12 +118,12 @@ class TestSensorProbe:
             assert reading.power_w is None
             assert "power" in reading.missing
         finally:
-            del os.environ["SINTER_SYSFS_ROOT"]
+            del os.environ["CUPOLA_SYSFS_ROOT"]
 
     def test_no_gpu_unavailable(self, tmp_path):
         """Test no GPU returns quality='unavailable'."""
         sysfs = _create_no_gpu_tree(tmp_path)
-        os.environ["SINTER_SYSFS_ROOT"] = str(sysfs)
+        os.environ["CUPOLA_SYSFS_ROOT"] = str(sysfs)
 
         try:
             reading = probe_sensors()
@@ -131,12 +131,12 @@ class TestSensorProbe:
             assert reading.quality == "unavailable"
             assert "gpu" in reading.missing
         finally:
-            del os.environ["SINTER_SYSFS_ROOT"]
+            del os.environ["CUPOLA_SYSFS_ROOT"]
 
     def test_implausible_temperature_treated_as_missing(self, tmp_path):
         """Test implausible temperature (200°C) is treated as missing."""
         sysfs = _create_implausible_temp_tree(tmp_path)
-        os.environ["SINTER_SYSFS_ROOT"] = str(sysfs)
+        os.environ["CUPOLA_SYSFS_ROOT"] = str(sysfs)
 
         try:
             reading = probe_sensors()
@@ -145,7 +145,7 @@ class TestSensorProbe:
             assert reading.gpu_edge_c is None
             assert "temperature" in reading.missing
         finally:
-            del os.environ["SINTER_SYSFS_ROOT"]
+            del os.environ["CUPOLA_SYSFS_ROOT"]
 
     def test_sensor_reading_to_dict(self):
         """Test SensorReading serialization."""
@@ -166,9 +166,9 @@ class TestSensorProbe:
         assert data["missing"] == []
 
     def test_default_sysfs_root(self):
-        """Test default sysfs root is /sys when SINTER_SYSFS_ROOT not set."""
-        if "SINTER_SYSFS_ROOT" in os.environ:
-            del os.environ["SINTER_SYSFS_ROOT"]
+        """Test default sysfs root is /sys when CUPOLA_SYSFS_ROOT not set."""
+        if "CUPOLA_SYSFS_ROOT" in os.environ:
+            del os.environ["CUPOLA_SYSFS_ROOT"]
 
         # Should not raise, but likely returns unavailable on CI
         reading = probe_sensors()
