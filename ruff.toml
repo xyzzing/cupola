@@ -3,3 +3,7 @@ target-version = "py311"
 
 [lint]
 select = ["E", "F", "I"]
+
+# `.agentic/` is pinned harness tooling (hashes in .agentic/install-state.json),
+# not project code; its bundled verify.py does not meet the project lint.
+extend-exclude = [".agentic"]
