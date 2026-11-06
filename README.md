@@ -179,7 +179,7 @@ cupola telemetry
 cupola telemetry --session
 
 # Software Carbon Intensity for the last session
-sinter sci
+cupola sci
 
 # Status includes live telemetry
 cupola status
@@ -196,16 +196,39 @@ See [docs/sentinel.md](docs/sentinel.md) for configuration and
 [docs/sci.md](docs/sci.md) for SCI, the grid-intensity providers, and how to
 answer "does installing this plugin actually reduce carbon?".
 
+### Catching silent throttling
+
+HTTP 200s say nothing about a GPU that is quietly being held back. `cupola
+metrics --serve` publishes a Prometheus endpoint from inside Cupola — stdlib
+only, loopback by default — and `observability/` brings up Prometheus and
+Grafana with a provisioned dashboard and 13 alert rules.
+
+```bash
+cupola metrics --serve &                 # 127.0.0.1:9817
+cd observability && cp .env.example .env # set GF_ADMIN_PASSWORD
+docker compose up -d                     # Grafana :3000, Prometheus :9091
+```
+
+It tracks junction/edge/memory temperature against the chip's own critical
+limit, clock held below its DPM ceiling while the engine is busy, power pinned
+at the cap, PCIe link speed and width versus what the slot is capable of, AER
+error totals, VRAM headroom, GTT spill, and abnormal backend exits. Where an
+ASIC cannot answer a question — SM occupancy and PCIe TX/RX byte counters on
+`amdgpu` — the exporter says so as a metric instead of reporting zero.
+
+See [docs/observability.md](docs/observability.md) for the DCGM-to-Cupola
+mapping, the gap register, and the alert rationale.
+
 ## Carbon accounting (SCI)
 
-Sinter reports `SCI = (E x I + M) / R` — energy (measured in tiers), grid carbon
+Cupola reports `SCI = (E x I + M) / R` — energy (measured in tiers), grid carbon
 intensity (static, or hourly from a provider), embodied emissions, and a
 functional unit — with every number carrying its provenance, limitations, and
 green-software evidence.
 
 ```bash
-sinter sci --report b.json
-sinter bench compare --baseline a.json --candidate b.json \
+cupola sci --report b.json
+cupola bench compare --baseline a.json --candidate b.json \
     --attribute marginal --arm minder=b.json
 ```
 

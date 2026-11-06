@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path as _Path
 
-from sinter.compare import (
+from cupola.compare import (
     VERDICT_INSUFFICIENT,
     VERDICT_PASS,
     attribute_marginal,
@@ -95,7 +95,7 @@ def test_missing_sci_means_unknown():
 
 
 def test_fingerprint_mismatch_still_reports_no_deltas():
-    from sinter.compare import VERDICT_NON_COMPARABLE
+    from cupola.compare import VERDICT_NON_COMPARABLE
 
     comparison = compare_pair(_report(10.0), _report(8.0, fingerprint="fp-2"))
     assert comparison.verdict == VERDICT_NON_COMPARABLE
@@ -180,9 +180,9 @@ def _accounting():
 
 def _write_report(path, kwh):
     """A six-run report whose runs each measured ``kwh``."""
-    from sinter.report import build_report
-    from sinter.runner import TaskOutcome
-    from sinter.suites import load_suite
+    from cupola.report import build_report
+    from cupola.runner import TaskOutcome
+    from cupola.suites import load_suite
 
     suite = load_suite("coding-core-v2", BENCH_ROOT)
     outcomes = []
@@ -204,7 +204,7 @@ def _cli_args(baseline, candidate, as_json):
 
 
 def test_cli_compare_end_to_end_reports_carbon(tmp_path, capsys):
-    from sinter.cli import cmd_bench_compare
+    from cupola.cli import cmd_bench_compare
 
     baseline, candidate = tmp_path / "a.json", tmp_path / "b.json"
     _write_report(baseline, 0.020)
@@ -221,7 +221,7 @@ def test_cli_compare_end_to_end_reports_carbon(tmp_path, capsys):
 
 
 def test_cli_compare_human_output_carries_the_carbon_answer(tmp_path, capsys):
-    from sinter.cli import cmd_bench_compare
+    from cupola.cli import cmd_bench_compare
 
     baseline, candidate = tmp_path / "a.json", tmp_path / "b.json"
     _write_report(baseline, 0.020)

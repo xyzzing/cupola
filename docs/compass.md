@@ -122,11 +122,11 @@ both a completion verdict and an SCI delta, plus the candidate's green-software
 evidence with the comparison filled in:
 
 ```bash
-sinter bench compare --baseline a.json --candidate b.json \
+cupola bench compare --baseline a.json --candidate b.json \
     --attribute marginal --arm minder=b.json
 #   carbon: helping - SCI delta -4.0 gCO2e per verified task
 #   green evidence: 4/7 principles proven [..., carbon_efficiency_proven]; ...
-sinter sci --report a.json
+cupola sci --report a.json
 ```
 
 ## Operator notes

@@ -97,7 +97,7 @@ class AccountingConfig:
 class CarbonConfig:
     """Time-resolved grid carbon intensity providers (the ``I`` lookup).
 
-    Defaults to ``static``: sinter opens no socket unless this is changed.
+    Defaults to ``static``: cupola opens no socket unless this is changed.
     """
     provider: str = "static"
     zone: str = ""
@@ -121,6 +121,29 @@ class RamdiskConfig:
 
 
 @dataclass
+class MetricsConfig:
+    """Prometheus text endpoint that feeds the throttling dashboard.
+
+    Bound to loopback by default. The endpoint exposes GPU counters and a tail
+    of the backend log, and none of it is meant to be reachable off-host.
+    """
+    enabled: bool = True
+    bind: str = "127.0.0.1"
+    port: int = 9817
+    #: Cap on how much of each log is read per scrape. A rotated or oversized
+    #: backend log must not make a scrape unbounded.
+    log_tail_max_bytes: int = 256 * 1024
+    #: Case-insensitive substrings that mark a VRAM allocation failure in the
+    #: backend log. One matching line is one OOM event.
+    oom_patterns: list[str] = field(default_factory=lambda: [
+        "out of memory",
+        "failed to allocate",
+        "could not allocate",
+        "bad_alloc",
+    ])
+
+
+@dataclass
 class CupolaConfig:
     """Top-level CUPOLA configuration."""
     profiles: dict[str, ProfileSpec] = field(default_factory=dict)
@@ -134,6 +157,7 @@ class CupolaConfig:
     accounting: AccountingConfig = field(default_factory=AccountingConfig)
     carbon: CarbonConfig = field(default_factory=CarbonConfig)
     ramdisk: RamdiskConfig = field(default_factory=RamdiskConfig)
+    metrics: MetricsConfig = field(default_factory=MetricsConfig)
 
 
 def load_config(config_path: Optional[Path] = None) -> CupolaConfig:
@@ -294,6 +318,21 @@ def load_config(config_path: Optional[Path] = None) -> CupolaConfig:
     env_ramdisk = os.environ.get("CUPOLA_RAMDISK_PATH")
     if env_ramdisk:
         config.ramdisk.path = env_ramdisk
+
+    # Parse metrics endpoint configuration
+    metrics_raw = raw.get("metrics", {})
+    if metrics_raw:
+        m = config.metrics
+        patterns = metrics_raw.get("oom_patterns", m.oom_patterns)
+        config.metrics = MetricsConfig(
+            enabled=bool(metrics_raw.get("enabled", m.enabled)),
+            bind=str(metrics_raw.get("bind", m.bind)),
+            port=int(metrics_raw.get("port", m.port)),
+            log_tail_max_bytes=int(
+                metrics_raw.get("log_tail_max_bytes", m.log_tail_max_bytes)
+            ),
+            oom_patterns=[str(p) for p in patterns],
+        )
 
     return config
 

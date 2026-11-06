@@ -1,0 +1,78 @@
+# DCGM-style GPU observability for a Sinter-supervised llama-server.
+#
+# The exporter itself runs on the host (`sinter metrics --serve`), because the
+# amdgpu sysfs tree and the backend log files are host paths. This stack only
+# scrapes and displays it.
+#
+#   cp .env.example .env      # set GF_ADMIN_PASSWORD
+#   sinter metrics --serve    # on the host, loopback:9817
+#   docker compose up -d
+#
+# Networking: both services join the host network and bind loopback. That is
+# deliberate. The exporter binds 127.0.0.1, and a bridge container cannot reach
+# the host's loopback — `host.docker.internal` resolves to the docker0 gateway
+# (172.17.0.1), where nothing is listening. Host networking also keeps the
+# unauthenticated /metrics endpoint and the Grafana UI off the LAN.
+#
+# Linux only (this is a ROCm host). To expose Grafana beyond the box, set
+# GF_SERVER_HTTP_ADDR=0.0.0.0 and put it behind a reverse proxy.
+#
+# SELinux: this host is permissive/disabled. On an enforcing host, append `:Z`
+# to the bind mounts below or container reads of these files will be denied.
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      # 9090 is taken on this box; loopback-only either way.
+      - --web.listen-address=127.0.0.1:9091
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9091/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
+  grafana:
+    image: grafana/grafana:11.6.1
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    volumes:
+      # The dashboard JSON lives under the provisioning tree in the repo, so one
+      # mount covers it; the provider's path points inside that tree. A nested
+      # mount under a read-only parent fails at container init.
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_SERVER_HTTP_ADDR: 127.0.0.1
+      GF_SECURITY_ADMIN_USER: ${GF_ADMIN_USER:-sinter}
+      # No default on purpose: a dashboard that watches a melting GPU should not
+      # ship a known password.
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:?set GF_ADMIN_PASSWORD in observability/.env}
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  prometheus-data:
+  grafana-data:

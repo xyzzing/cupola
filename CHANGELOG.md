@@ -8,13 +8,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Renamed sinter to cupola (package, module, CLI, docs); issue #3.
+- Renamed cupola to cupola (package, module, CLI, docs); issue #3.
 
 ### Added
+- **GPU observability and throttling detection** — a Prometheus endpoint inside
+  Cupola plus a provisioned Grafana/Prometheus stack, for the failures an
+  HTTP-layer dashboard cannot see (ADR-004)
+  - `cupola metrics [--serve] [--json] [--bind HOST] [--port PORT]` — stdlib
+    text exposition on `127.0.0.1:9817`, no new dependency
+  - DCGM-aligned names where the ASIC answers: junction/edge/memory temperature
+    against the chip's own critical limit, sclk/mclk plus the highest static
+    `pp_dpm_sclk` state as the ceiling, power against the enforced cap, VRAM and
+    GTT totals, PCIe negotiated versus capable link speed and width, AER error
+    totals
+  - Derived throttle evidence (`sinter_throttle_flag_info`) in place of the
+    throttle-reason register this hardware does not have: clock below ceiling
+    while busy, power at cap, hotspot at critical, link downgraded,
+    uncorrectable AER
+  - Gaps are metrics, not zeros — `sinter_metric_unavailable_info{name, reason}`
+    declares SM occupancy and PCIe TX/RX byte counters as unmeasurable on
+    `amdgpu` rather than reporting them as zero
+  - VRAM failure detection from both sides: allocation headroom and GTT spill
+    from the sentinel, plus counters for OOM signatures in backend logs and for
+    supervised exits with no stop request
+  - Event counters persist to `<state_dir>/metrics/events.json` so `increase()`
+    survives an exporter restart; losing that durability publishes
+    `sinter_ledger_persist_error`
+  - `observability/` — `docker-compose.yml` (host networking, loopback-published
+    UIs), scrape config, 13 alert rules, and the *Cupola GPU throttling*
+    dashboard, which includes a panel listing what is measured nowhere
+  - `docs/observability.md` — DCGM mapping, gap register, alert rationale,
+    systemd user unit, measured baseline
 - **Software Carbon Intensity (SCI)** — `SCI = (E x I + M) / R` per verified
   task, per 1k tokens, or per session hour
-  - `sinter sci [--report PATH] [--json]` — the carbon number and its provenance
-  - `sinter telemetry --session` now includes the session SCI block
+  - `cupola sci [--report PATH] [--json]` — the carbon number and its provenance
+  - `cupola telemetry --session` now includes the session SCI block
   - Time-resolved grid intensity via `[carbon]` providers: `static`, `file`,
     `neso-gb` (GB, half-hourly, no key), `energidataservice-dk` (DK1/DK2, 5 min,
     no key); eight more documented and selectable later

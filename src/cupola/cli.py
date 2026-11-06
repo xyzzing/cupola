@@ -1016,7 +1016,7 @@ def cmd_update(args: argparse.Namespace) -> int:
 
 def _sci_lines(payload: dict) -> list[str]:
     """Indirection so only the command that needs it imports the renderer."""
-    from sinter.sci import format_sci_lines
+    from cupola.sci import format_sci_lines
 
     try:
         return format_sci_lines(payload)
@@ -1042,8 +1042,8 @@ def latest_telemetry_summary(config) -> Optional[dict]:
 
 def cmd_sci(args: argparse.Namespace) -> int:
     """Software Carbon Intensity for a session or a benchmark report."""
-    from sinter.report import read_report, validate_report
-    from sinter.sci import format_sci_lines
+    from cupola.report import read_report, validate_report
+    from cupola.sci import format_sci_lines
 
     config = load_config()
 
@@ -1086,7 +1086,7 @@ def cmd_sci(args: argparse.Namespace) -> int:
     summary = latest_telemetry_summary(config)
     if summary is None:
         print("No session summary found. Start an instance with "
-              "'sinter up <profile>', or pass --report PATH.", file=sys.stderr)
+              "'cupola up <profile>', or pass --report PATH.", file=sys.stderr)
         return 1
 
     if args.json:
@@ -1211,6 +1211,36 @@ def cmd_telemetry(args: argparse.Namespace) -> int:
             if reading.missing:
                 print(f"  Missing: {', '.join(reading.missing)}")
 
+    return 0
+
+
+def cmd_metrics(args: argparse.Namespace) -> int:
+    """Print the Prometheus exposition once, or serve it.
+
+    Printing is the default so the exact bytes a scrape would see can be
+    inspected without a running server. Gaps print as declared gaps, which is
+    the point of the exercise: an absent measurement must not look like zero.
+    """
+    from cupola.metrics import EventLedger, collect, render_samples, serve
+
+    config = load_config()
+    if args.bind:
+        config.metrics.bind = args.bind
+    if args.port:
+        config.metrics.port = int(args.port)
+
+    if args.serve:
+        if not config.metrics.enabled:
+            print("metrics: [metrics] enabled=false; --serve overrides it for this run")
+        return serve(config)
+
+    samples = collect(config, EventLedger(config.state_dir, config.metrics))
+    if args.json:
+        print(json.dumps(
+            [{"name": s.name, "value": s.value, "labels": s.labels} for s in samples],
+            indent=2))
+    else:
+        print(render_samples(samples), end="")
     return 0
 
 
@@ -1572,6 +1602,19 @@ def main(argv: list[str] | None = None) -> int:
     p_rd_down = ramdisk_subparsers.add_parser("down", help="Remove model from RAM disk")
     p_rd_down.add_argument("profile", help="Profile alias")
     p_rd_down.set_defaults(func=cmd_ramdisk_down)
+
+    p_metrics = subparsers.add_parser(
+        "metrics", help="Prometheus metrics for GPU throttling and VRAM pressure")
+    metrics_group = p_metrics.add_mutually_exclusive_group()
+    metrics_group.add_argument("--serve", action="store_true",
+                               help="Run the exporter in the foreground")
+    metrics_group.add_argument("--json", action="store_true",
+                               help="Emit samples as JSON instead of Prometheus text")
+    p_metrics.add_argument("--bind", default=None,
+                           help="Listen address (default: [metrics] bind, loopback only)")
+    p_metrics.add_argument("--port", type=int, default=None,
+                           help="Listen port (default: [metrics] port)")
+    p_metrics.set_defaults(func=cmd_metrics)
 
     args = _parse_args_with_bench_shim(parser, argv)
     return args.func(args)

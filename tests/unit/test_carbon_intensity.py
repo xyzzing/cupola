@@ -333,7 +333,8 @@ def test_resolve_never_raises_on_a_hostile_file(tmp_path):
     assert resolved.reason.startswith("provider_error")
 
 
-def test_neso_gb_url_is_widened_for_a_sub_minute_window(monkeypatch):
+def test_neso_gb_url_is_widened_for_a_sub_minute_window(monkeypatch,
+                                                        tmp_path):
     import datetime as dt
 
     seen = {}
@@ -346,7 +347,7 @@ def test_neso_gb_url_is_widened_for_a_sub_minute_window(monkeypatch):
     start = dt.datetime(2026, 1, 1, 0, 0, 30, tzinfo=dt.timezone.utc).timestamp()
     ci.resolve_intensity(carbon=_carbon(provider="neso-gb"),
                          accounting=_accounting(), start=start, end=start + 20,
-                         cache_dir=None)
+                         cache_dir=tmp_path)
     start_iso, end_iso = seen["url"].rsplit("/", 2)[-2:]
     assert start_iso != end_iso, "from == to would return an empty range"
 

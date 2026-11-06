@@ -60,3 +60,5 @@ all_files.txt
 # OS
 .DS_Store
 Thumbs.db
+# Local secrets for the observability stack
+observability/.env

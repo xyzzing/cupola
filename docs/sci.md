@@ -1,6 +1,6 @@
 # SCI — Software Carbon Intensity
 
-Sinter reports **Software Carbon Intensity** (SCI), the ISO/IEC 21031:2024 rate
+Cupola reports **Software Carbon Intensity** (SCI), the ISO/IEC 21031:2024 rate
 used by the Green Software Foundation's
 [SCI for AI](https://sci-for-ai.greensoftware.foundation/) methodology:
 
@@ -108,7 +108,7 @@ wall_energy_unit = "kwh"                 # kwh | wh | j — declared, never gues
 
 ## Time-resolved intensity (`[carbon]`)
 
-Sinter is local-first: **no socket is opened unless a provider is configured**.
+Cupola is local-first: **no socket is opened unless a provider is configured**.
 The default is the static factor above, which is offline and reproducible.
 
 ```toml

@@ -224,7 +224,7 @@ def _run_carbon(outcome, accounting) -> tuple[Optional[dict], str]:
     """One run's carbon arithmetic, and why it was excluded if it was.
 
     The admissibility rules (which tiers count, the assumed-power gate, the
-    functional-unit requirement) live in :func:`sinter.sci.compute_sci`; this
+    functional-unit requirement) live in :func:`cupola.sci.compute_sci`; this
     only supplies what is run-specific — the measured energy, the embodied
     method, and the token count.
     """

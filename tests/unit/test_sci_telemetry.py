@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from sinter.sensors import SensorReading
-from sinter.telemetry import (
+from cupola.sensors import SensorReading
+from cupola.telemetry import (
     EnergyMeter,
     SentinelSampler,
     _read_wall_counter,
@@ -78,7 +78,7 @@ def test_wall_meter_wins_over_every_other_tier():
 
 
 def test_tier_precedence_without_a_wall_meter():
-    from sinter.telemetry import compute_energy_tier2
+    from cupola.telemetry import compute_energy_tier2
 
     counter = compute_session_energy(
         samples=[_reading("2026-01-01T00:00:00+00:00", power_w=300.0)],
@@ -251,8 +251,8 @@ def test_meter_reading_hook_sees_every_sample():
 
 
 def test_runner_records_energy_and_intensity(tmp_path):
-    from sinter.runner import RunnerConfig, TaskOutcome, _close_energy_window
-    from sinter.telemetry import EnergyResult
+    from cupola.runner import RunnerConfig, TaskOutcome, _close_energy_window
+    from cupola.telemetry import EnergyResult
 
     class StubMeter:
         started_at = 1000.0
@@ -291,8 +291,8 @@ def test_runner_records_energy_and_intensity(tmp_path):
 
 
 def test_runner_without_accounting_records_energy_only(tmp_path):
-    from sinter.runner import RunnerConfig, TaskOutcome, _close_energy_window
-    from sinter.telemetry import EnergyResult
+    from cupola.runner import RunnerConfig, TaskOutcome, _close_energy_window
+    from cupola.telemetry import EnergyResult
 
     class StubMeter:
         started_at = 1000.0
@@ -318,7 +318,7 @@ def test_supervisor_sampler_kwargs_are_accepted(tmp_path):
     Signature drift here would only surface when a real instance starts, so it
     is pinned against the config objects the supervisor actually holds.
     """
-    from sinter.config import load_config
+    from cupola.config import load_config
 
     config_file = tmp_path / "config.toml"
     config_file.write_text(
@@ -364,7 +364,7 @@ def test_supervisor_sampler_kwargs_are_accepted(tmp_path):
 
 
 def test_amortised_without_figures_records_the_substitution():
-    from sinter.telemetry import compute_embodied
+    from cupola.telemetry import compute_embodied
 
     configured_but_unusable = SimpleNamespace(
         embodied_method="amortised", embodied_total_kgco2e=0.0,
@@ -433,7 +433,7 @@ def _provider_carbon(**extra):
 
 
 def _no_network(monkeypatch):
-    import sinter.carbon_intensity as ci
+    import cupola.carbon_intensity as ci
 
     def boom(url, timeout):
         raise ci.IntensityError("offline")
@@ -452,7 +452,7 @@ def test_require_hourly_refusal_survives_the_outer_layer(monkeypatch, tmp_path):
     from types import SimpleNamespace
 
     _no_network(monkeypatch)
-    from sinter.telemetry import build_intensity
+    from cupola.telemetry import build_intensity
 
     carbon = SimpleNamespace(**_provider_carbon(require_hourly=True))
     accounting = SimpleNamespace(**_accounting())
@@ -477,8 +477,8 @@ def test_a_refused_intensity_is_not_substituted_by_the_report(tmp_path):
     """report._intensity_for must not re-defeat the refusal either."""
     from types import SimpleNamespace
 
-    from sinter.report import derive_metrics
-    from sinter.runner import TaskOutcome
+    from cupola.report import derive_metrics
+    from cupola.runner import TaskOutcome
 
     outcome = TaskOutcome(task_id="t", system="stub", status="verified",
                           wall_seconds=10.0, usage={"total_tokens": 100})
@@ -495,8 +495,8 @@ def test_static_fallback_does_not_wear_the_provider_name(monkeypatch, tmp_path):
     """A resolved series with no usable power samples falls back to static."""
     from types import SimpleNamespace
 
-    from sinter import carbon_intensity as ci
-    from sinter.telemetry import build_intensity
+    from cupola import carbon_intensity as ci
+    from cupola.telemetry import build_intensity
 
     class Point:
         ts_start, ts_end, kgco2e_per_kwh, resolution_s = 0.0, 3600.0, 0.2, 1800
@@ -522,7 +522,7 @@ def test_static_fallback_does_not_wear_the_provider_name(monkeypatch, tmp_path):
 
 
 def test_non_utf8_series_is_a_reason_not_a_crash(tmp_path):
-    from sinter import carbon_intensity as ci
+    from cupola import carbon_intensity as ci
 
     path = tmp_path / "utf16.csv"
     path.write_bytes("timestamp,intensity\n2026-01-01T00:00:00Z,300\n"
@@ -540,7 +540,7 @@ def test_sub_minute_window_still_asks_for_a_range(monkeypatch, tmp_path):
     """A 20 s run must not request from == to and silently lose its figure."""
     from types import SimpleNamespace
 
-    from sinter import carbon_intensity as ci
+    from cupola import carbon_intensity as ci
 
     seen = {}
 

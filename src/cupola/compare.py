@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, Optional
 
-from sinter.sci import carbon_principles
+from cupola.sci import carbon_principles
 
 VERDICT_PASS = "PASS"
 VERDICT_FAIL = "FAIL"

@@ -1,0 +1,154 @@
+# Alert rules for silent GPU throttling and VRAM exhaustion.
+#
+# Every rule names a condition that an HTTP-200 dashboard would miss. Rules that
+# depend on a metric this ASIC cannot provide are absent here on purpose; the
+# gap register in docs/observability.md records why.
+
+groups:
+  - name: sinter-thermal
+    rules:
+      - alert: SinterHotspotHigh
+        # Relative to the chip's own critical threshold rather than a literal,
+        # so the rule stays correct across ASICs.
+        expr: >-
+          sinter_gpu_temperature_celsius{sensor="junction"}
+          > 0.9 * sinter_gpu_temperature_critical_celsius
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Junction at {{ $value | printf \"%.0f\" }} C, within 10% of critical"
+          description: >-
+            Sustained junction temperature near the critical threshold. The
+            driver will reduce clocks before this alert's threshold is crossed.
+
+      - alert: SinterHotspotAtCritical
+        expr: sinter_throttle_flag_info{flag="hotspot_at_crit"} == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Junction reported at the critical threshold"
+
+  - name: sinter-silent-throttle
+    rules:
+      - alert: SinterSilentThrottle
+        # Busy GPU, clock held below its own DPM ceiling. The request still
+        # succeeds; it just takes longer, which is how an SLO slips unnoticed.
+        expr: sinter_throttle_flag_info{flag="clock_below_ceiling"} == 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SM clock below ceiling while the GPU is busy ({{ $labels.flag }})"
+          description: >-
+            gpu_busy_percent is high and sclk is well under pp_dpm_sclk. Check
+            power cap, thermals, and PCIe link state.
+
+      - alert: SinterPowerCapped
+        expr: sinter_throttle_flag_info{flag="power_at_cap"} == 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Board power pinned at the configured cap"
+
+      - alert: SinterPcieLinkDegraded
+        expr: >-
+          sinter_pcie_link_speed_gts{limit="current"}
+            < ignoring(limit) sinter_pcie_link_speed_gts{limit="max"}
+          or
+          sinter_pcie_link_width{limit="current"}
+            < ignoring(limit) sinter_pcie_link_width{limit="max"}
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PCIe link running below its maximum capability"
+          description: >-
+            Link retrained to a lower speed or width. Token generation for a
+            offloaded model is now bandwidth-bound; nothing in the HTTP layer
+            will report this.
+
+      - alert: SinterAerErrors
+        expr: increase(sinter_pcie_aer_errors_total{type!="correctable"}[15m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Uncorrectable PCIe AER errors appeared on the GPU link"
+
+  - name: sinter-vram
+    rules:
+      - alert: SinterVramHeadroomLow
+        # Gated on the backend being up: an empty frame buffer while no model is
+        # loaded is not a problem.
+        expr: >-
+          (sinter_vram_headroom_bytes < 536870912)
+          and on() (sinter_backend_up == 1)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "VRAM headroom under 512 MiB with a model loaded"
+
+      - alert: SinterGttSpill
+        expr: sinter_gtt_spill_detected == 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Allocations spilling into GTT (system RAM over PCIe)"
+          description: >-
+            The GPU is out of dedicated memory and is using system memory.
+            Latency degrades by an order of magnitude without any error.
+
+      - alert: SinterVramOom
+        expr: increase(sinter_vram_oom_events_total[30m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "VRAM OOM observed ({{ $labels.source }})"
+
+  - name: sinter-backend
+    rules:
+      - alert: SinterBackendDied
+        # The supervisor logs no crash event; this counter is derived from the
+        # backend pid disappearing without a stop request.
+        expr: increase(sinter_backend_unexpected_exits_total[15m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Supervised backend exited without a stop request"
+
+      - alert: SinterCountersNotDurable
+        expr: sinter_ledger_persist_error == 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Event ledger cannot be written to the state directory"
+          description: >-
+            Event totals are in-memory only, so increase() across an exporter
+            restart is unreliable.
+
+  - name: sinter-blind-spots
+    rules:
+      - alert: SinterExporterDown
+        expr: up{job="sinter"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "sinter exporter is not being scraped"
+          description: >-
+            No GPU telemetry is being collected. Run `sinter metrics --serve`.
+
+      - alert: SinterSensorBlind
+        expr: >-
+          absent(sinter_sensor_quality_info)
+          or sinter_sensor_quality_info{quality="unavailable"} == 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "GPU sensors unreadable; gauges are gaps, not zeros"

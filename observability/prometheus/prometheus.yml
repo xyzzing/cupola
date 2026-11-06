@@ -1,0 +1,21 @@
+# Scrapes the sinter exporter running on the host.
+#
+# 10s is deliberate: a throttling episode is short-lived, and a 15s default
+# smooths the exact thing this stack exists to catch.
+
+global:
+  scrape_interval: 10s
+  scrape_timeout: 5s
+  external_labels:
+    stack: sinter
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: sinter
+    # Loopback, because docker-compose.yml puts Prometheus on the host network.
+    # The exporter binds 127.0.0.1 by default and a bridge container cannot see
+    # the host loopback; do not "fix" this by naming an interface address.
+    static_configs:
+      - targets: ["127.0.0.1:9817"]

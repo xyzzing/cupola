@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
-import json, os, subprocess, sys
+import json
+import os
+import subprocess
+import sys
 from pathlib import Path
+
 root = Path(__file__).resolve().parent.parent
 if os.environ.get("AGENTIC_VERIFY_ACTIVE"):
     sys.exit("Recursive verification refused")
